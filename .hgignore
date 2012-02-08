@@ -1,0 +1,8 @@
+syntax: glob
+
+*.o
+*~
+*.swp
+parser.out
+parser.c
+lexer.c
