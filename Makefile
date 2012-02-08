@@ -5,8 +5,8 @@ else
    EXE=
 endif
 
-CFILES   = symbol.c error.c general.c symbtest.c
-HFILES   = symbol.h error.h general.h
+CFILES   = symbol.c error.c general.c symbtest.c quad.c
+HFILES   = symbol.h error.h general.h quad.h
 OBJFILES = $(patsubst %.c,%.o,$(CFILES))
 EXEFILES = symbtest
 
@@ -18,20 +18,21 @@ CFLAGS=-Wall -ansi -pedantic -g
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<
 
-parser: lexer.o parser.o symbol.o error.o general.o
+quads: lexer.o parser.o symbol.o error.o general.o quad.o
 	$(CC) $(CFLAGS) -o $@ $^ -lfl
 
 lexer.c: lexer.l
 	flex -s -o $@ $<
 
-lexer.o: lexer.c parser.h
+lexer.o: lexer.c parser.h quad.h
 
 parser.c parser.h: parser.y
 	bison -v -d -o $@ $<
 
 general.o  : general.c general.h error.h
 error.o    : error.c general.h error.h
-symbol.o   : symbol.c symbol.h general.h error.h
+symbol.o   : symbol.c symbol.h general.h error.h quad.h
+quad.o     : quad.c quad.h symbol.h
 
 clean:
 	$(RM) $(EXEFILES) $(OBJFILES) *~ parser.output

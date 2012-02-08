@@ -9,6 +9,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "symbol.h"
+#include "quad.h"
 #include "parser.h"
 
 
@@ -48,8 +49,8 @@ specialchar \\([ntr0\\\"\']|x{hex}{2})
 
 {digit}+	{yylval.i = (int)installNum(); return(T_constnum);}
 {letter}({letter}|{digit})*		{ strncpy(yylval.s,yytext,32); return T_id; }
-\'({simplechar}|{specialchar})\'	{ /*yylval.s = (char *)strdup(yytext);*/ return T_constchar; }
-\"({simplechar}|{white}|\\)*\"		{/*yylval.s = (char *)strdup(yytext);*/ return T_string; }
+\'({simplechar}|{specialchar})\'	{ /*yylval.Name = (char *)strdup(yytext);*/ return T_constchar; }
+\"({simplechar}|{white}|\\)*\"		{/*yylval.Name = (char *)strdup(yytext);*/ return T_string; }
 
 "--"([^\n])*\n			{ linecount++; }
 

@@ -5,6 +5,7 @@
 #include "symbol.h" /*includes functions of symbol table*/ 
 #include "error.h"
 #include "general.h"
+#include "quad.h"
 
 SymbolEntry *fun_decl, *fun_call;
 SymbolEntry *lval;
@@ -19,13 +20,26 @@ int yylex(void);
 int linecount=1;
 %}
 
+
 %union {
 	int	i;
 	char	c;
 	char	s[32];
 	Type	t;
 	bool	b;
-}
+};
+%typedef struct var_tag var;
+
+%struct var_tag {
+        operand *PLACE;
+        Type TYPE;
+        labelList *NEXT;
+        labelList *TRUE;
+        labelList *FALSE;
+        const char NAME;
+};
+
+
 
 /*Bison declarations */
 %token T_eof 0
@@ -85,7 +99,10 @@ fpar_list0	:	/*EMPTY*/
 			
 fpar_def	:	T_id T_dd type	{ if($3->kind != TYPE_IARRAY)
 					  	newParameter($1, $3, PASS_BY_VALUE, fun_decl);
-					  else error("Arrays must always pass by reference") }
+					  else {
+					  	error("Arrays must always pass by reference");
+					  	newParameter($1, $3, PASS_BY_REFERENCE, fun_decl);	
+					  	} }
 		|	T_id T_dd T_reference type	{ newParameter($1, $4, PASS_BY_REFERENCE, fun_decl) }
 		;
 			
@@ -114,7 +131,7 @@ stmt		:	T_semic	{ ret_at_end = false }
 							  else if($1!=$3) error("Expression must be same type with left value");
 							  ret_at_end = false }
 		|	compound_stmt		{ ret_at_end = false }
-		|	func_call T_semic	{ if($1!=typeVoid) error("Function must have type proc");
+		|	func_call T_semic	{ if(!equalType($1,typeVoid)) error("Function must have type proc");
 						  ret_at_end = false }
 		|	T_if T_oppar cond T_clpar stmt		{ ret_at_end = false }
 		|	T_if T_oppar cond T_clpar stmt T_else stmt	{ ret_at_end = false }
@@ -140,8 +157,10 @@ compound_stmt0	:	/*EMPTY*/
 		|	stmt compound_stmt0 
 		;
 		
-func_call	:	T_id T_oppar	{ if ((fun_call=lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL) 
+func_call	:	T_id T_oppar	{ if((fun_call=lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL) 
 					  	fatal("Identifier cannot be found");
+					  if(fun_call->entryType!=ENTRY_FUNCTION)
+					  	fatal("Identifier is not a function"); 
 					  currentArg = fun_call->u.eFunction.firstArgument; }
 			expr_list T_clpar	{ $$ = fun_call->u.eFunction.resultType }
 		;
@@ -155,9 +174,9 @@ expr_list0	:	expr	{ if(many_arg)
 				  else { 
 					if(currentArg!=NULL) {
   			  	  		if((!equalType($1,currentArg->u.eParameter.type))&&(!equalArrays($1,currentArg->u.eParameter.type)))
-				  			error("Wrong type of parameter1");
+				  			error("Wrong type of parameter");
 				  		if(currentArg->u.eParameter.next != NULL)
-				  			error("Too few arguments at call2");
+				  			error("Too few arguments at call");
 				  	} 
 				  	else error("Too many arguments at call");
 				  } 
@@ -168,7 +187,7 @@ expr_list0	:	expr	{ if(many_arg)
 				  			error("Wrong type of parameter");
 				  		currentArg = currentArg->u.eParameter.next;
 				  	} 
-				  	else {  error("Too many arguments at call1");
+				  	else {  error("Too many arguments at call");
 				    	    many_arg = true; 
 				    	}
 				   } 

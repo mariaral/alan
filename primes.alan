@@ -1,6 +1,6 @@
 main () : proc
-prime (n : int, v : byte) : int
-i : int;
+prime (n : int v : byte) : int
+i : int[242424242424242424242424242424242424242424242424];
 {
 	if (n < 0)         return prime(-n);
 	else if (n < 2)    return 0;
@@ -51,4 +51,5 @@ counter : int;
 	writeString("\nTotal: ");
 	writeInteger(counter);
 	writeString("\n");
+@
 } -- main
