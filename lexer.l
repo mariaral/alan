@@ -7,7 +7,10 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
+#include "symbol.h"
 #include "parser.h"
+
 
 extern int linecount;
 int commentcount=0;
@@ -44,9 +47,9 @@ specialchar \\([ntr0\\\"\']|x{hex}{2})
 
 
 {digit}+	{yylval.i = (int)installNum(); return(T_constnum);}
-{letter}({letter}|{digit})*		{/*installID Func Here */ return T_id; }
-\'({simplechar}|{specialchar})\'	{ yylval.s = (char *)strdup(yytext); return T_constchar; }
-\"({simplechar}|{white}|\\)*\"		{yylval.s = (char *)strdup(yytext); return T_string; }
+{letter}({letter}|{digit})*		{ strncpy(yylval.s,yytext,32); return T_id; }
+\'({simplechar}|{specialchar})\'	{ /*yylval.s = (char *)strdup(yytext);*/ return T_constchar; }
+\"({simplechar}|{white}|\\)*\"		{/*yylval.s = (char *)strdup(yytext);*/ return T_string; }
 
 "--"([^\n])*\n			{ linecount++; }
 
