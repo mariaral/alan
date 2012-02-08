@@ -8,16 +8,22 @@ endif
 CFLAGS=-g -Wall
 CC=gcc
 
-lexer$(EXE): lexer.o
+parser$(EXE): lexer.o parser.o
 	$(CC) $(CFLAGS) -o $@ $^ -lfl
 
 lexer.c: lexer.l
 	flex -s -o $@ $<
 
+lexer.o: lexer.c parser.h
+
+parser.c parser.h: parser.y
+	bison -v -d -o $@ $<
+
 .PHONY: clean distclean
 
 clean:
-	$(RM) lexer.c *.o *~
+	$(RM) lexer.c parser.c parser.h parser.output *.o *~
 
 distclean: clean
-	$(RM) lexer$(EXE)
+	$(RM) parser$(EXE)
+

@@ -7,3 +7,4 @@ parser.out
 parser.c
 lexer.c
 lexer
+parser
