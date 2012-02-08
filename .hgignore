@@ -6,3 +6,4 @@ syntax: glob
 parser.out
 parser.c
 lexer.c
+lexer
