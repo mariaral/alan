@@ -5,10 +5,20 @@ else
    EXE=
 endif
 
-CFLAGS=-g -Wall
-CC=gcc
+CFILES   = symbol.c error.c general.c symbtest.c
+HFILES   = symbol.h error.h general.h
+OBJFILES = $(patsubst %.c,%.o,$(CFILES))
+EXEFILES = symbtest
 
-parser$(EXE): lexer.o parser.o
+SRCFILES = $(HFILES) $(CFILES) parser.y lexer.l
+
+CC=gcc
+CFLAGS=-Wall -ansi -pedantic -g
+
+%.o : %.c
+	$(CC) $(CFLAGS) -c $<
+
+parser: lexer.o parser.o symbol.o error.o general.o
 	$(CC) $(CFLAGS) -o $@ $^ -lfl
 
 lexer.c: lexer.l
@@ -19,11 +29,18 @@ lexer.o: lexer.c parser.h
 parser.c parser.h: parser.y
 	bison -v -d -o $@ $<
 
-.PHONY: clean distclean
+general.o  : general.c general.h error.h
+error.o    : error.c general.h error.h
+symbol.o   : symbol.c symbol.h general.h error.h
 
 clean:
-	$(RM) lexer.c parser.c parser.h parser.output *.o *~
+	$(RM) $(EXEFILES) $(OBJFILES) *~ parser.output
 
-distclean: clean
-	$(RM) parser$(EXE)
-
+dist:
+	rm -rf compiler-0.1 compiler-0.1.tar.gz
+	mkdir compiler-0.1
+	cp $(SRCFILES) Makefile compiler-0.1
+	tar czf compiler-0.1.tar.gz compiler-0.1
+	rm -r compiler-0.1
+count:
+	wc -l -c Makefile $(SRCFILES)
