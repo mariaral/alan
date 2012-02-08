@@ -74,7 +74,7 @@ program		:	{ openScope(); init_ready_functions(); }	func_def	{ closeScope() }
 		;
 		
 func_def	:	T_id					{ fun_decl = newFunction($1); openScope() }
-			T_oppar fpar_list T_clpar T_dd r_type	{ endFunctionHeader(fun_decl,$7) }
+			T_oppar fpar_list T_clpar T_dd r_type	{ endFunctionHeader(fun_decl,$7.type) }
 			local_def0	{ ret_at_end=false; ret_exists=false } 
 			compound_stmt	{ currrentFunction = currentScope->parent->entries;
 					  if((!ret_exists)&&(!equalType(currrentFunction->u.eFunction.resultType,typeVoid)))
@@ -114,8 +114,8 @@ type		:	data_type		{ $$ = $1 }
 		|	data_type T_opj T_clj	{ $$ = typeIArray($1) }
 		;
 			
-r_type		:	data_type	{ $$ = $1 }
-		|	T_proc		{ $$ = typeVoid }
+r_type		:	data_type	{ $$.type = $1 }
+		|	T_proc		{ $$.type = typeVoid }
 		;
 			
 local_def	:	func_def
@@ -127,8 +127,8 @@ var_def		:	T_id T_dd data_type T_semic	{ newVariable($1, $3) }
 		;
 		
 stmt		:	T_semic	{ ret_at_end = false }
-		|	l_value T_assign expr T_semic	{ if($1->kind==TYPE_ARRAY) error("Left value cannot be type Array");
-							  else if($1!=$3) error("Expression must be same type with left value");
+		|	l_value T_assign expr T_semic	{ if(($1.type)->kind==TYPE_ARRAY) error("Left value cannot be type Array");
+							  else if($1.type!=$3.type) error("Expression must be same type with left value");
 							  ret_at_end = false }
 		|	compound_stmt		{ ret_at_end = false }
 		|	func_call T_semic	{ if(!equalType($1,typeVoid)) error("Function must have type proc");
@@ -143,7 +143,7 @@ stmt		:	T_semic	{ ret_at_end = false }
 						  ret_exists = true
 						 }
 		|	T_return expr T_semic	{ currrentFunction = currentScope->parent->entries;
-						  if(currrentFunction->u.eFunction.resultType!=$2)
+						  if(currrentFunction->u.eFunction.resultType!=$2.type)
 						  	error("Function must return same type of value as declared");
 						ret_at_end = true;
 						ret_exists = true
@@ -173,7 +173,7 @@ expr_list0	:	expr	{ if(many_arg)
 				  	many_arg=false;
 				  else { 
 					if(currentArg!=NULL) {
-  			  	  		if((!equalType($1,currentArg->u.eParameter.type))&&(!equalArrays($1,currentArg->u.eParameter.type)))
+  			  	  		if((!equalType($1.type,currentArg->u.eParameter.type))&&(!equalArrays($1.type,currentArg->u.eParameter.type)))
 				  			error("Wrong type of parameter");
 				  		if(currentArg->u.eParameter.next != NULL)
 				  			error("Too few arguments at call");
@@ -183,7 +183,7 @@ expr_list0	:	expr	{ if(many_arg)
 				}
 		|	expr	{ if(!many_arg) {
 				  	if(currentArg!=NULL) {
-				  		if((!equalType($1,currentArg->u.eParameter.type))&&(!equalArrays($1,currentArg->u.eParameter.type)))
+				  		if((!equalType($1.type,currentArg->u.eParameter.type))&&(!equalArrays($1.type,currentArg->u.eParameter.type)))
 				  			error("Wrong type of parameter");
 				  		currentArg = currentArg->u.eParameter.next;
 				  	} 
@@ -195,93 +195,93 @@ expr_list0	:	expr	{ if(many_arg)
 		T_comma expr_list0	
 		;
 		
-expr		:	T_constnum	{ $$ = typeInteger }
-		|	T_constchar	{ $$ = typeChar }
-		|	l_value		{ $$ = $1 }
-		|	T_oppar expr T_clpar	{ $$ = $2 }
-		|	func_call	{ if($1!=typeVoid) $$=$1;
+expr		:	T_constnum	{ $$.type = typeInteger }
+		|	T_constchar	{ $$.type = typeChar }
+		|	l_value		{ $$.type = $1.type }
+		|	T_oppar expr T_clpar	{ $$.type= $2.type }
+		|	func_call	{ if($1!=typeVoid) $$.type=$1;
 					  else error("Cannot call proc") }
 			
-		|	'+' expr %prec UPLUS	{ if($2!=typeInteger)
+		|	'+' expr %prec UPLUS	{ if($2.type!=typeInteger)
 							error("Opperand must be type int");
 						  else  $$ = $2 }
 						  
-		|	'-' expr %prec UMINUS	{ if($2!=typeInteger)
+		|	'-' expr %prec UMINUS	{ if($2.type!=typeInteger)
 							error("Opperand must be type int");
 						  else  $$ = $2 }
 						  
-		|	expr '+' expr		{ if(!int_or_byte($1,$3))
+		|	expr '+' expr		{ if(!int_or_byte($1.type,$3.type))
 						  	error("Opperands must be type int or byte");
 						  else {
-						  	if($1 != $3)
+						  	if($1.type != $3.type)
 						  		error("Operands must be same type");
-						  	else $$ = $1;
+						  	else $$.type = $1.type;
 						  } }
-		|	expr '-' expr		{ if(!int_or_byte($1,$3))
+		|	expr '-' expr		{ if(!int_or_byte($1.type,$3.type))
 						  	error("Opperands must be type int or byte");
 						  else {
-						  	if($1 != $3)
+						  	if($1.type != $3.type)
 						  		error("Operands must be same type");
-						  	else $$ = $1;
+						  	else $$.type = $1.type;
 						  } }						  
-		|	expr '*' expr		{ if(!int_or_byte($1,$3))
+		|	expr '*' expr		{ if(!int_or_byte($1.type,$3.type))
 						  	error("Opperands must be type int or byte");
 						  else {
-						  	if($1 != $3)
+						  	if($1.type != $3.type)
 						  		error("Operands must be same type");
-						  	else $$ = $1;
+						  	else $$.type = $1.type;
 						  } }	  						  
-		|	expr '/' expr		{ if(!int_or_byte($1,$3))
+		|	expr '/' expr		{ if(!int_or_byte($1.type,$3.type))
 						  	error("Opperands must be type int or byte");
 						  else {
-						  	if($1 != $3)
+						  	if($1.type != $3.type)
 						  		error("Operands must be same type");
-						  	else $$ = $1;
+						  	else $$.type = $1.type;
 						  } }						  
-		|	expr T_mod expr		{ if(!int_or_byte($1,$3))
+		|	expr T_mod expr		{ if(!int_or_byte($1.type,$3.type))
 						  	error("Opperands must be type int or byte");
 						  else {
-						  	if($1 != $3)
+						  	if($1.type != $3.type)
 						  		error("Operands must be same type");
-						  	else $$ = $1;
+						  	else $$.type = $1.type;
 						  } }						  
 		;
 		
 l_value		:	T_id			{ if((lval = lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL)
 						  	fatal("Identifier cannot be found");
 				 		  if(lval->entryType == ENTRY_VARIABLE)
-				 		  	$$ = lval->u.eVariable.type;
+				 		  	$$.type = lval->u.eVariable.type;
 				  		  else if(lval->entryType == ENTRY_PARAMETER)
-				  		  	$$ = lval->u.eParameter.type;
+				  		  	$$.type = lval->u.eParameter.type;
 				  		  else error("Identifiers don't match") }
-		|	T_id T_opj expr T_clj	{ if($3 != typeInteger) 
+		|	T_id T_opj expr T_clj	{ if($3.type != typeInteger) 
 						  	error("Array index must be integer");
 						  if((lval = lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL)
 						  	fatal("Identifier cannot be found");
 				 		  if(lval->entryType == ENTRY_VARIABLE)
-						  	$$ = lval->u.eVariable.type->refType;
+						  	$$.type = lval->u.eVariable.type->refType;
 				   		  else if(lval->entryType == ENTRY_PARAMETER)
-				   		  	$$ = lval->u.eParameter.type->refType;
+				   		  	$$.type = lval->u.eParameter.type->refType;
 			  			  else error("Identifiers don't match") }
-		|	T_string		{ $$ = typeArray(strlen($1)+1,typeChar); } 
+		|	T_string		{ $$.type = typeArray(strlen($1)+1,typeChar); } 
 		;
 		
-cond		:	T_true
+cond		:	T_true {}
 		|	T_false
 		|	T_oppar cond T_clpar
 		|	T_excl cond
-		|	expr T_eq expr	{ if(!int_or_byte($1,$3)) error("Opperands must be int or byte");
-					  else if($1!=$3) error("Cannot compaire different types") }
-		|	expr T_ne expr	{ if(!int_or_byte($1,$3)) error("Opperands must be int or byte");
-					  else if($1!=$3) error("Cannot compaire different types") }
-		|	expr T_gt expr	{ if(!int_or_byte($1,$3)) error("Opperands must be int or byte");
-					  else if($1!=$3) error("Cannot compaire different types") }
-		|	expr T_lt expr	{ if(!int_or_byte($1,$3)) error("Opperands must be int or byte");
-					  else if($1!=$3) error("Cannot compaire different types") }
-		|	expr T_ge expr	{ if(!int_or_byte($1,$3)) error("Opperands must be int or byte");
-					  else if($1!=$3) error("Cannot compaire different types") }
-		|	expr T_le expr	{ if(!int_or_byte($1,$3)) error("Opperands must be int or byte");
-					  else if($1!=$3) error("Cannot compaire different types") }
+		|	expr T_eq expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
+					  else if($1.type!=$3.type) error("Cannot compaire different types") }
+		|	expr T_ne expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
+					  else if($1.type!=$3.type) error("Cannot compaire different types") }
+		|	expr T_gt expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
+					  else if($1.type!=$3.type) error("Cannot compaire different types") }
+		|	expr T_lt expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
+					  else if($1.type!=$3.type) error("Cannot compaire different types") }
+		|	expr T_ge expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
+					  else if($1.type!=$3.type) error("Cannot compaire different types") }
+		|	expr T_le expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
+					  else if($1.type!=$3.type) error("Cannot compaire different types") }
 		|	cond T_and cond
 		|	cond T_or cond
 		;
