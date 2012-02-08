@@ -5,6 +5,7 @@ syntax: glob
 *.swp
 parser.out
 parser.c
+parser.h
 lexer.c
 lexer
 parser

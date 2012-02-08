@@ -20,23 +20,21 @@ int yylex(void);
 int linecount=1;
 %}
 
-
 %union {
-	int	i;
-	char	c;
-	char	s[32];
-	Type	t;
-	bool	b;
-};
-%typedef struct var_tag var;
-
-%struct var_tag {
-        operand *PLACE;
-        Type TYPE;
-        labelList *NEXT;
-        labelList *TRUE;
-        labelList *FALSE;
-        const char NAME;
+        int     i;
+        char    c;
+        Type type;
+        char s[32];
+        struct {
+                SymbolEntry *Place;
+                Type type;
+        } var;
+        labelList *Next;
+        struct {
+                labelList *True;
+                labelList *False;
+        } b;
+        char Name[256];
 };
 
 
@@ -46,9 +44,9 @@ int linecount=1;
 %token T_byte T_int T_proc T_reference T_return T_while 
 %token T_if T_else
 %token T_true T_false
-%token<s> T_id T_string
+%token<Name> T_id T_string
 %token<i> T_constnum 
-%token T_constchar
+%token<c> T_constchar
 %token T_assign T_mod T_excl T_and T_or T_eq T_ne T_lt T_le T_gt T_ge
 %token T_oppar T_clpar T_opj T_clj T_begin T_end
 %token T_dd T_comma T_semic
@@ -62,8 +60,10 @@ int linecount=1;
 %left '*' '/' T_mod
 %right UPLUS UMINUS T_excl
 
-%type<t> type data_type r_type expr func_call
-%type<t> l_value
+%type<type> type data_type func_call
+%type<var> l_value r_type expr 
+%type<b> cond
+%type<Next> stmt
 
 %error-verbose
 %expect 1
