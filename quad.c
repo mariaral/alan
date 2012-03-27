@@ -2,9 +2,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int quadNext = 0;
-quadFirst = NULL;
-quadLast = NULL;
+unsigned int quadNext= 0;
+quadListNode * quadFirst = NULL;
+quadListNode * quadLast = NULL;
 
 int nextQuad()
 {
@@ -12,7 +12,7 @@ int nextQuad()
         return quadNext;
 }
 
-void genQuad(oper a, operand *b, operand *c, operand *d)
+void genQuad(oper a, operand* b, operand* c, operand* d)
 {
         quadListNode* newQuad;
      
@@ -27,7 +27,7 @@ void genQuad(oper a, operand *b, operand *c, operand *d)
                 quadLast->next = newQuad;
         else quadFirst = newQuad;
         quadLast = newQuad;
-       printf("%d\n",quadLast->id);
+/*       printf("%d\n",quadLast->id);*/
 }
 
 SymbolEntry * newTemp(Type type)
@@ -78,7 +78,7 @@ void backpatch(labelList * l, int z)
 
                 if (temp->label->operand2->opType==OP_UNKNOWN) {
                         temp->label->operand2->opType = OP_LABEL;
-                        temp->label->operand2->u.qlabel = z;
+                        temp->label->operand2->u.label = z;
                 }
                 temp = temp->next;
         }

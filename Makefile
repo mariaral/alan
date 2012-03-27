@@ -1,7 +1,7 @@
 
 CFILES   = symbol.c error.c general.c quad.c
 HFILES   = symbol.h error.h general.h quad.h
-OBJFILES = $(patsubst %.c,%.o,$(CFILES))
+OBJFILES = $(patsubst %.c,%.o,$(CFILES)) lexer.o parser.o
 EXEFILES = alan
 
 SRCFILES = $(HFILES) $(CFILES) parser.y lexer.l
@@ -13,10 +13,10 @@ CFLAGS=-Wall -ansi -pedantic -g
 all: $(OBJFILES)
 	$(CC) $(CFLAGS) -o $(EXEFILES) $(OBJFILES) -lfl
 
-%.o : %.c parser.y
+%.o : %.c
 	$(CC) $(CFLAGS) -c $<
 
-lexer.c: lexer.l
+lexer.c: lexer.l parser.h
 	flex -s -o $@ $<
 
 parser.c parser.h: parser.y
