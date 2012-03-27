@@ -1,38 +1,26 @@
-# OS type: Linux/Win DJGPP
-ifdef OS
-   EXE=.exe
-else
-   EXE=
-endif
 
-CFILES   = symbol.c error.c general.c symbtest.c quad.c
+CFILES   = symbol.c error.c general.c quad.c
 HFILES   = symbol.h error.h general.h quad.h
 OBJFILES = $(patsubst %.c,%.o,$(CFILES))
-EXEFILES = symbtest
+EXEFILES = alan
 
 SRCFILES = $(HFILES) $(CFILES) parser.y lexer.l
 
 CC=gcc
 CFLAGS=-Wall -ansi -pedantic -g
 
-%.o : %.c
-	$(CC) $(CFLAGS) -c $<
 
-quads: lexer.o parser.o symbol.o error.o general.o quad.o
-	$(CC) $(CFLAGS) -o $@ $^ -lfl
+all: $(OBJFILES)
+	$(CC) $(CFLAGS) -o $(EXEFILES) $(OBJFILES) -lfl
+
+%.o : %.c parser.y
+	$(CC) $(CFLAGS) -c $<
 
 lexer.c: lexer.l
 	flex -s -o $@ $<
 
-lexer.o: lexer.c parser.h quad.h
-
 parser.c parser.h: parser.y
 	bison -v -d -o $@ $<
-
-general.o  : general.c general.h error.h
-error.o    : error.c general.h error.h
-symbol.o   : symbol.c symbol.h general.h error.h quad.h
-quad.o     : quad.c quad.h symbol.h
 
 clean:
 	$(RM) $(EXEFILES) $(OBJFILES) *~ parser.output
@@ -40,7 +28,8 @@ clean:
 dist:
 	rm -rf compiler-0.1 compiler-0.1.tar.gz
 	mkdir compiler-0.1
-	cp $(SRCFILES) Makefile compiler-0.1
+	cp $(SRCFILES) compiler-0.1
+	cp Makefile README.md compiler-0.1
 	tar czf compiler-0.1.tar.gz compiler-0.1
 	rm -r compiler-0.1
 count:
