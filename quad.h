@@ -30,10 +30,11 @@ typedef struct quadListNode_tag quadListNode;
 
 struct quadListNode_tag {
         int quadLabel;
+
         oper op; 
-        operand *operand0; 
-        operand *operand1;
-        operand *operand2;
+        operand* operand0; 
+        operand* operand1;
+        operand* operand2;
         quadListNode* next;
 };
 
