@@ -1,0 +1,20 @@
+hello () : int
+a : int;
+c : int [10];
+d : int;
+
+hello2( b : int, c: int[] ) : int
+{
+	return a;
+	 b = 3;
+	 
+}
+
+{
+	a = 3;
+	c[3] = 5;
+	a = hello2(a,c);
+	a = hello2(a,c,a,a,a,a);
+	a = hello2(a);
+	writeString("Hello world!\n");
+}

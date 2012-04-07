@@ -1,0 +1,13 @@
+syntax: glob
+
+*.o
+*~
+*.swp
+alan
+parser.c
+parser.h
+lexer.c
+lexer
+parser
+quads
+parser.output
