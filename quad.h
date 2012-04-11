@@ -33,7 +33,8 @@ typedef struct operand_tag operand;
 
 struct operand_tag {
     enum {
-        OP_ENTRY,
+        OP_PLACE,
+        OP_TEMPORARY,
         OP_LABEL,
         OP_PASSMODE,
         OP_UNKNOWN,
@@ -41,8 +42,9 @@ struct operand_tag {
     } opType;
 
     union {
+        SymbolEntry *temp;
         int label;
-        SymbolEntry * symb;
+        Place place;
     }u;
 };
 
@@ -78,4 +80,6 @@ labelList * emptyList();
 labelList * makeList(int x);
 
 labelList * merge(labelList * l1, labelList * l2);
+
+void printQuads();
 #endif

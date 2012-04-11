@@ -84,4 +84,9 @@ void backpatch(labelList * l, int z)
         }
 }
 
+void printQuads()
+{
+    quadListNode * temp;
 
+    temp = quadFirst;
+}
