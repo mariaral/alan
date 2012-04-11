@@ -225,49 +225,110 @@ expr		:	T_constnum	{ $$.type = typeInteger;
 							error("Opperand must be type int");
 						  else {
                                                         $$.type = $2.type;
-                                                        op0.opType = OP_ENTRY;
-                                                        op0.u.symb = $2.place.u.entry;
+                                                        op0.opType = OP_PLACE;
+                                                        op0.u.place = $2.place;
                                                         op1.opType = OP_NOTHING;
-                                                        op2.opType = OP_ENTRY;
-                                                        op2.u.symb = newTemporary($2.type);
+                                                        op2.opType = OP_PLACE;
+                                                        op2.u.place.placeType = ENTRY;
+                                                        op2.u.place.u.entry = newTemporary($2.type);
                                                         genQuad(MINUS,op0,op1,op2);
-                                                        $$.place.placeType = ENTRY;
-                                                        $$.place.u.entry = op2.u.symb;                                                                } }
+                                                        $$.place = op2.u.place; } }
 						  
 		|	expr '+' expr		{ if(!int_or_byte($1.type,$3.type))
-						  	error("Opperands must be type int or byte");
+						  	error("Operands must be type int or byte");
 						  else {
 						  	if($1.type != $3.type)
 						  		error("Operands must be same type");
-						  	else $$.type = $1.type;
+						  	else {
+                                                                $$.type = $1.type;
+                                                                op0.opType = OP_PLACE;
+                                                                op0.u.place = $1.place;
+                                                                op1.opType = OP_PLACE;
+                                                                op1.u.place = $3.place;
+                                                                op2.opType = OP_PLACE;
+                                                                op2.u.place.placeType = ENTRY;
+                                                                op2.u.place.u.entry = newTemporary($3.type);
+                                                                genQuad(PLUS,op0,op1,op2);
+                                                                $$.place = op2.u.place;
+                                                        }
+
 						  } }
 		|	expr '-' expr		{ if(!int_or_byte($1.type,$3.type))
-						  	error("Opperands must be type int or byte");
+						  	error("Operands must be type int or byte");
 						  else {
 						  	if($1.type != $3.type)
 						  		error("Operands must be same type");
-						  	else $$.type = $1.type;
+						  	else {
+                                                                $$.type = $1.type;
+                                                                op0.opType = OP_PLACE;
+                                                                op0.u.place = $1.place;
+                                                                op1.opType = OP_PLACE;
+                                                                op1.u.place = $3.place;
+                                                                op2.opType = OP_PLACE;
+                                                                op2.u.place.placeType = ENTRY;
+                                                                op2.u.place.u.entry = newTemporary($3.type);
+                                                                genQuad(MINUS,op0,op1,op2);
+                                                                $$.place = op2.u.place;
+                                                        }
+
+
 						  } }						  
 		|	expr '*' expr		{ if(!int_or_byte($1.type,$3.type))
-						  	error("Opperands must be type int or byte");
+						  	error("Operands must be type int or byte");
 						  else {
 						  	if($1.type != $3.type)
 						  		error("Operands must be same type");
-						  	else $$.type = $1.type;
+						  	else {
+                                                                $$.type = $1.type;
+                                                                op0.opType = OP_PLACE;
+                                                                op0.u.place = $1.place;
+                                                                op1.opType = OP_PLACE;
+                                                                op1.u.place = $3.place;
+                                                                op2.opType = OP_PLACE;
+                                                                op2.u.place.placeType = ENTRY;
+                                                                op2.u.place.u.entry = newTemporary($3.type);
+                                                                genQuad(MULT,op0,op1,op2);
+                                                                $$.place = op2.u.place;
+                                                        }
+
 						  } }	  						  
 		|	expr '/' expr		{ if(!int_or_byte($1.type,$3.type))
-						  	error("Opperands must be type int or byte");
+						  	error("Operands must be type int or byte");
 						  else {
 						  	if($1.type != $3.type)
 						  		error("Operands must be same type");
-						  	else $$.type = $1.type;
+						  	else {
+                                                                $$.type = $1.type;
+                                                                op0.opType = OP_PLACE;
+                                                                op0.u.place = $1.place;
+                                                                op1.opType = OP_PLACE;
+                                                                op1.u.place = $3.place;
+                                                                op2.opType = OP_PLACE;
+                                                                op2.u.place.placeType = ENTRY;
+                                                                op2.u.place.u.entry = newTemporary($3.type);
+                                                                genQuad(DIVI,op0,op1,op2);
+                                                                $$.place = op2.u.place;
+                                                        }
+
 						  } }						  
 		|	expr T_mod expr		{ if(!int_or_byte($1.type,$3.type))
-						  	error("Opperands must be type int or byte");
+						  	error("Operands must be type int or byte");
 						  else {
 						  	if($1.type != $3.type)
 						  		error("Operands must be same type");
-						  	else $$.type = $1.type;
+						  	else {
+                                                                $$.type = $1.type;
+                                                                op0.opType = OP_PLACE;
+                                                                op0.u.place = $1.place;
+                                                                op1.opType = OP_PLACE;
+                                                                op1.u.place = $3.place;
+                                                                op2.opType = OP_PLACE;
+                                                                op2.u.place.placeType = ENTRY;
+                                                                op2.u.place.u.entry = newTemporary($3.type);
+                                                                genQuad(MOD,op0,op1,op2);
+                                                                $$.place = op2.u.place;
+                                                        }
+
 						  } }						  
 		;
 		
