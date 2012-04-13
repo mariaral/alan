@@ -19,13 +19,15 @@ struct Place_tag {
     enum {
         CONSTNUM,
         CONSTCHAR,
-        ENTRY
+        ENTRY,
+        STRING
     } placeType;
 
     union {
         int constnum;
         char constchar;
         SymbolEntry *entry;
+        char string[256];
     }u;
 };
 
@@ -33,7 +35,7 @@ typedef struct operand_tag operand;
 
 struct operand_tag {
     enum {
-        OP_ENTRY,
+        OP_PLACE,
         OP_LABEL,
         OP_PASSMODE,
         OP_UNKNOWN,
@@ -42,7 +44,7 @@ struct operand_tag {
 
     union {
         int label;
-        SymbolEntry * symb;
+        Place place;
     }u;
 };
 
@@ -78,4 +80,6 @@ labelList * emptyList();
 labelList * makeList(int x);
 
 labelList * merge(labelList * l1, labelList * l2);
+
+void printQuads();
 #endif
