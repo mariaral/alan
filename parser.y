@@ -334,21 +334,39 @@ expr		:	T_constnum	{ $$.type = typeInteger;
 		
 l_value		:	T_id			{ if((lval = lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL)
 						  	fatal("Identifier cannot be found");
-				 		  if(lval->entryType == ENTRY_VARIABLE)
+				 		  if(lval->entryType == ENTRY_VARIABLE) {
 				 		  	$$.type = lval->u.eVariable.type;
-				  		  else if(lval->entryType == ENTRY_PARAMETER)
+                                                        $$.place.placeType = ENTRY;
+                                                        $$.place.u.entry = lval;
+                                                  }
+				  		  else {
+                                                  if(lval->entryType == ENTRY_PARAMETER) {
 				  		  	$$.type = lval->u.eParameter.type;
-				  		  else error("Identifiers don't match"); }
+                                                        $$.place.placeType = ENTRY; 
+                                                        $$.place.u.entry = lval;
+                                                  }
+				  		  else error("Identifiers don't match"); } }
 		|	T_id T_opj expr T_clj	{ if($3.type != typeInteger) 
 						  	error("Array index must be integer");
 						  if((lval = lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL)
 						  	fatal("Identifier cannot be found");
-				 		  if(lval->entryType == ENTRY_VARIABLE)
+				 		  if(lval->entryType == ENTRY_VARIABLE) {
 						  	$$.type = lval->u.eVariable.type->refType;
-				   		  else if(lval->entryType == ENTRY_PARAMETER)
+                                                        genQuad(ARRAY,op0,op1,op2);
+                                                        $$.place.placeType = ENTRY; 
+                                                        $$.place.u.entry = lval;
+                                                  }
+
+				   		  else {
+                                                  if(lval->entryType == ENTRY_PARAMETER) {
 				   		  	$$.type = lval->u.eParameter.type->refType;
-			  			  else error("Identifiers don't match"); }
-		|	T_string		{ $$.type = typeArray(strlen($1)+1,typeChar); } 
+                                                        $$.place.placeType = ENTRY; 
+                                                        $$.place.u.entry = lval;
+                                                  }
+                                                  else error("Identifiers don't match"); } }
+		|	T_string		{ $$.type = typeArray(strlen($1)+1,typeChar);
+                                                  $$.place.placeType = STRING;
+                                                  strcpy($1,$$.place.u.string); } 
 		;
 		
 cond		:	T_true
