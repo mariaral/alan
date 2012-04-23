@@ -362,11 +362,7 @@ l_value		:	T_id			{ if((lval = lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL)
 				   		  	$$.type = lval->u.eParameter.type->refType;
                                                         $$.place.placeType = ENTRY; 
                                                         $$.place.u.entry = lval;
-                                                  }
-                                                  else error("Identifiers don't match"); } }
-		|	T_string		{ $$.type = typeArray(strlen($1)+1,typeChar);
-                                                  $$.place.placeType = STRING;
-                                                  strcpy($1,$$.place.u.string); } 
+                                                  } } }
 		;
 		
 cond		:	T_true
