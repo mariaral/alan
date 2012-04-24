@@ -61,10 +61,10 @@ specialchar \\([ntr0\\\"\']|x{hex}{2})
 <COMMENT>[^*\n]+    	{ /* nothing */ }
 
 "="	{ return T_assign; }
-"+"	{ return '+'; }
-"-"	{ return '-'; }
-"*"	{ return '*'; }
-"/"	{ return '/'; }
+"+"	{ return T_plus; }
+"-"	{ return T_minus; }
+"*"	{ return T_mult; }
+"/"	{ return T_div; }
 "%"     { return T_mod; }
 "!"     { return T_excl; }
 "&"	{ return T_and; }

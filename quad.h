@@ -19,6 +19,7 @@ struct Place_tag {
     enum {
         CONSTNUM,
         CONSTCHAR,
+        REFERENCE,
         ENTRY,
         STRING
     } placeType;
@@ -36,6 +37,7 @@ typedef struct operand_tag operand;
 struct operand_tag {
     enum {
         OP_PLACE,
+        OP_TEMPORARY,
         OP_LABEL,
         OP_PASSMODE,
         OP_UNKNOWN,
@@ -46,6 +48,13 @@ struct operand_tag {
         int label;
         Place place;
     }u;
+};
+
+typedef struct varstr_tag varstr;
+
+struct varstr_tag {
+    Place place;
+    Type type;
 };
 
 typedef struct quadListNode_tag quadListNode;
@@ -71,15 +80,17 @@ quadListNode *quadFirst, *quadLast;
 
 int nextQuad();
 
-void genQuad(oper a, operand b, operand c, operand d);
+void genQuad(oper, operand, operand, operand);
 
-SymbolEntry * newTemp(Type t);
+/*operand address_of(operand);*/
+
+SymbolEntry * newTemp(Type);
 
 labelList * emptyList();
 
-labelList * makeList(int x);
+labelList * makeList(int);
 
-labelList * merge(labelList * l1, labelList * l2);
+labelList * merge(labelList * , labelList * );
 
 void printQuads();
 #endif
