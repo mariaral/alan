@@ -11,7 +11,15 @@ int nextQuad()
         printf("next quad: %d\n",quadNext);
         return quadNext;
 }
+/*
+operand address_of(operand x)
+{
+    operand r;
 
+    r.opType = OP_PLACE;
+    r.u.place = 
+} 
+*/
 void genQuad(oper a, operand b, operand c, operand d)
 {
         quadListNode* newQuad;
