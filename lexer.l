@@ -8,9 +8,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include "quad.h"
 #include "symbol.h"
+#include "quad.h"
 #include "parser.h"
+
 
 
 extern int linecount;

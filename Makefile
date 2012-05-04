@@ -1,6 +1,7 @@
 
 CFILES   = symbol.c error.c general.c quad.c
 HFILES   = symbol.h error.h general.h quad.h
+GENFILES = lexer.c parser.h parser.c parser.output
 OBJFILES = $(patsubst %.c,%.o,$(CFILES)) lexer.o parser.o
 EXEFILES = alan
 
@@ -19,11 +20,13 @@ all: $(OBJFILES)
 lexer.c: lexer.l parser.h
 	flex -s -o $@ $<
 
-parser.c parser.h: parser.y
+parser.h: parser.c
+
+parser.c: parser.y
 	bison -v -d -o $@ $<
 
 clean:
-	$(RM) $(EXEFILES) $(OBJFILES) *~ parser.output
+	$(RM) $(EXEFILES) $(OBJFILES) $(GENFILES) *~
 
 dist:
 	rm -rf compiler-0.1 compiler-0.1.tar.gz
