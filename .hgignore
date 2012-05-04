@@ -10,3 +10,4 @@ lexer.c
 lexer
 parser
 quads
+parser.output

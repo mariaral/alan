@@ -12,7 +12,7 @@ int nextQuad()
         return quadNext;
 }
 
-void genQuad(oper a, operand* b, operand* c, operand* d)
+void genQuad(oper a, operand b, operand c, operand d)
 {
         quadListNode* newQuad;
      
@@ -76,9 +76,9 @@ void backpatch(labelList * l, int z)
         temp = l;
         while(temp!=NULL) {
 
-                if (temp->label->operand2->opType==OP_UNKNOWN) {
-                        temp->label->operand2->opType = OP_LABEL;
-                        temp->label->operand2->u.label = z;
+                if (temp->label->operand2.opType==OP_UNKNOWN) {
+                        temp->label->operand2.opType = OP_LABEL;
+                        temp->label->operand2.u.label = z;
                 }
                 temp = temp->next;
         }
