@@ -12,6 +12,7 @@ SymbolEntry *lval;
 SymbolEntry *currentArg;
 SymbolEntry *currrentFunction;
 operand op0,op1,op2;
+labelList *L;
 bool many_arg;
 bool ret_exists, ret_at_end;
 void yyerror (const char msg[]);
@@ -64,7 +65,7 @@ int linecount=1;
 %type<type> type data_type func_call r_type
 %type<var> l_value lval_id expr
 %type<b> cond
-%type<Next> stmt
+%type<Next> stmt compound_stmt compound_stmt0
 
 %error-verbose
 %expect 1
@@ -74,16 +75,29 @@ int linecount=1;
 program		:	{ openScope(); init_ready_functions(); }	func_def	{ closeScope(); }
 		;
 
-func_def	:	T_id					{ fun_decl = newFunction($1); openScope(); }
+func_def	:	T_id					{ fun_decl = newFunction($1);
+                                                                  openScope();
+                                                                  op0.opType = OP_NAME;
+                                                                  strcpy(op0.u.name,$1);
+                                                                  op1.opType = OP_NOTHING;
+                                                                  op2.opType = OP_NOTHING;
+                                                                  genQuad(UNIT,op0,op1,op2);
+                                                                }
 			T_oppar fpar_list T_clpar T_dd r_type	{ endFunctionHeader(fun_decl,$7); }
 			local_def0	{ ret_at_end=false; ret_exists=false; }
 			compound_stmt	{ currrentFunction = currentScope->parent->entries;
 					  if((!ret_exists)&&(!equalType(currrentFunction->u.eFunction.resultType,typeVoid)))
 					  	error("Non proc functions must return value");
 					  else if((ret_exists)&&(!ret_at_end))
-					  	warning("Function doesn't return at end");
-					  closeScope(); }
-		;
+					 	warning("Function doesn't return at end");
+                                          backpatch($11, nextQuad());
+                                          op0.opType = OP_NAME;
+                                          strcpy(op0.u.name,$1);
+                                          op1.opType = OP_NOTHING;
+                                          op2.opType = OP_NOTHING;
+                                          genQuad(ENDU,op0,op1,op2);
+                                          closeScope(); }
+                ;
 
 local_def0	:	/*EMPTY*/
 		|	local_def0 local_def
@@ -127,11 +141,20 @@ var_def		:	T_id T_dd data_type T_semic	{ newVariable($1, $3); }
 		|	T_id T_dd data_type T_opj T_constnum T_clj T_semic	{ newVariable($1,typeArray($5,$3)); }
 		;
 
-stmt		:	T_semic	{ ret_at_end = false; }
+stmt		:	T_semic	{ ret_at_end = false;
+                                  $$ = emptyList(); }
 		|	l_value T_assign expr T_semic	{ if(($1.type)->kind==TYPE_ARRAY) error("Left value cannot be type Array");
 							  else if($1.type!=$3.type) error("Expression must be same type with left value");
-							  ret_at_end = false; }
-		|	compound_stmt		{ ret_at_end = false; }
+							  ret_at_end = false;
+                                                          op0.opType = OP_PLACE;
+                                                          op0.u.place = $3.place;
+                                                          op1.opType = OP_NOTHING;
+                                                          op2.opType = OP_PLACE;
+                                                          op2.u.place = $1.place;
+                                                          genQuad(ASSIGN,op0,op1,op2);
+                                                          $$ = emptyList(); }
+		|	compound_stmt		{ ret_at_end = false;
+                                                  $$ = $1; }
 		|	func_call T_semic	{ if(!equalType($1,typeVoid)) error("Function must have type proc");
 						  ret_at_end = false; }
 		|	T_if T_oppar cond T_clpar stmt		{ ret_at_end = false; }
@@ -151,11 +174,13 @@ stmt		:	T_semic	{ ret_at_end = false; }
 						}
 		;
 
-compound_stmt	:	T_begin compound_stmt0 T_end
+compound_stmt	:	T_begin { L = emptyList(); } compound_stmt0  T_end { $$ = $3; }
 		;
 
-compound_stmt0	:	/*EMPTY*/
-		|	stmt compound_stmt0
+compound_stmt0	:	/*EMPTY*/ { $$ = L; }
+		|	{ backpatch(L,nextQuad()); } 
+                        stmt { L = $2; }
+                        compound_stmt0 { $$ = L; }
 		;
 
 func_call	:	T_id T_oppar	{ if((fun_call=lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL)

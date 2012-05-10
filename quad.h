@@ -9,7 +9,7 @@ typedef enum {
     PLUS, MINUS, MULT, DIVI, MOD,
     ASSIGN, ARRAY,
     EQ, NEQ, LT, GT, LE, GE,
-    IFB, JUMP, LABEL, JUMPL,
+    IFB, JUMP, JUMPL,
     CALL, PAR, RET
 } oper;
 
@@ -39,6 +39,7 @@ struct operand_tag {
         OP_PLACE,
         OP_TEMPORARY,
         OP_LABEL,
+        OP_NAME,
         OP_PASSMODE,
         OP_UNKNOWN,
         OP_NOTHING
@@ -47,6 +48,7 @@ struct operand_tag {
     union {
         int label;
         Place place;
+        char name[256];
     }u;
 };
 
@@ -92,5 +94,7 @@ labelList * makeList(int);
 
 labelList * merge(labelList * , labelList * );
 
+void backpatch(labelList *, int);
+    
 void printQuads();
 #endif
