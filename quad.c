@@ -36,9 +36,12 @@ void genQuad(oper a, operand b, operand c, operand d)
     quadLast = newQuad;
 }
 
-SymbolEntry * newTemp(Type type)
+Place newTemp(Type type)
 {
-    return (newTemporary(type));
+    Place temp;
+    temp.placeType = ENTRY;
+    temp.entry = newTemporary(type);
+    return temp;
 }
 
 labelList * emptyList()

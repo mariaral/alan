@@ -13,6 +13,15 @@ typedef enum {
     CALL, PAR, RET
 } oper;
 
+typedef enum {
+    OP_PLACE,
+    OP_LABEL,
+    OP_NAME,
+    OP_PASSMODE,
+    OP_UNKNOWN,
+    OP_NOTHING
+} op_type;
+
 typedef struct Place_tag Place;
 
 struct Place_tag {
@@ -26,15 +35,7 @@ struct Place_tag {
 typedef struct operand_tag operand;
 
 struct operand_tag {
-    enum {
-        OP_PLACE,
-        OP_LABEL,
-        OP_NAME,
-        OP_PASSMODE,
-        OP_UNKNOWN,
-        OP_NOTHING
-    } opType;
-
+    op_type opType;
     union {
         int label;
         Place place;
@@ -76,7 +77,7 @@ void genQuad(oper, operand, operand, operand);
 
 /*operand address_of(operand);*/
 
-SymbolEntry * newTemp(Type);
+Place newTemp(Type);
 
 labelList * emptyList();
 
