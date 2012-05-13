@@ -8,7 +8,6 @@ quadListNode * quadLast = NULL;
 
 int nextQuad()
 {
-    printf("next quad: %d\n",quadNext);
     return quadNext;
 }
 /*
@@ -35,7 +34,6 @@ void genQuad(oper a, operand b, operand c, operand d)
         quadLast->next = newQuad;
     else quadFirst = newQuad;
     quadLast = newQuad;
-    /*       printf("%d\n",quadLast->id);*/
 }
 
 SymbolEntry * newTemp(Type type)
@@ -45,12 +43,7 @@ SymbolEntry * newTemp(Type type)
 
 labelList * emptyList()
 {
-    labelList *p;
-
-    p = malloc(sizeof(labelList));
-    p->label = NULL;
-    p->next = NULL;
-    return p;
+    return NULL;
 }
 
 labelList * makeList(int x)
@@ -71,6 +64,8 @@ labelList * merge(labelList * l1, labelList * l2)
 {
     labelList *temp;
     temp = l1;
+    if(temp==NULL)
+        return l2;
     while(temp->next!= NULL)
         temp = temp->next;
     temp->next = l2;
@@ -141,7 +136,7 @@ void printQuads()
 void printOp(operand op)
 {
     Place p;
-
+    
     switch (op.opType) {
     case OP_LABEL:
         printf("%d",op.u.label);
@@ -156,20 +151,22 @@ void printOp(operand op)
         printf("-");
         break;
     case OP_PLACE:
-        p=op.u.place;
-        switch (p.placeType) {
-        case CONSTNUM:
-            printf("%d",p.u.constnum);
+        p = op.u.place;
+        switch (p.entry->entryType) {
+        case ENTRY_VARIABLE:
+            printf("%s",p.entry->id);
             break;
-        case CONSTCHAR:
-            printf("'%c'",p.u.constchar);
+        case ENTRY_CONSTANT:
+            if(p.entry->u.eConstant.type == typeInteger)
+                printf("%d",p.entry->u.eConstant.value.vInteger);
+            else printf("'%c'",p.entry->u.eConstant.value.vChar);
             break;
-        case STRING:
-            printf("%s",p.u.string);
-            break;
+        case ENTRY_TEMPORARY:
+            if(p.placeType == REFERENCE)
+                printf("[$%d]",p.entry->u.eTemporary.number);
+            else 
+                printf("$%d",p.entry->u.eTemporary.number);
+            
         }
     }
 }
-
-
-

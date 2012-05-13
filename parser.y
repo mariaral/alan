@@ -22,6 +22,8 @@ void binopQuad(oper, varstr *, varstr *, varstr *);
 operand createTemporary(Type);
 int yylex(void);
 int linecount=1;
+int const_counter=0;
+char buff[10];
 %}
 
 %union {
@@ -75,16 +77,21 @@ int linecount=1;
 program		:	{ openScope(); init_ready_functions(); }	func_def	{ closeScope(); }
 		;
 
-func_def	:	T_id					{ fun_decl = newFunction($1);
+func_def	:	T_id					{
+                                                                  fun_decl = newFunction($1);
                                                                   openScope();
-                                                                  op0.opType = OP_NAME;
-                                                                  strcpy(op0.u.name,$1);
-                                                                  op1.opType = OP_NOTHING;
-                                                                  op2.opType = OP_NOTHING;
-                                                                  genQuad(UNIT,op0,op1,op2);
+                                                                  
                                                                 }
 			T_oppar fpar_list T_clpar T_dd r_type	{ endFunctionHeader(fun_decl,$7); }
-			local_def0	{ ret_at_end=false; ret_exists=false; }
+			local_def0	{ ret_at_end=false; 
+                                          ret_exists=false;  
+                                          quadLast = NULL;
+                                          op0.opType = OP_NAME;
+                                          strcpy(op0.u.name,$1);
+                                          op1.opType = OP_NOTHING;
+                                          op2.opType = OP_NOTHING;
+                                          genQuad(UNIT,op0,op1,op2);
+}
 			compound_stmt	{ currrentFunction = currentScope->parent->entries;
 					  if((!ret_exists)&&(!equalType(currrentFunction->u.eFunction.resultType,typeVoid)))
 					  	error("Non proc functions must return value");
@@ -96,6 +103,7 @@ func_def	:	T_id					{ fun_decl = newFunction($1);
                                           op1.opType = OP_NOTHING;
                                           op2.opType = OP_NOTHING;
                                           genQuad(ENDU,op0,op1,op2);
+                                          printQuads();
                                           closeScope(); }
                 ;
 
@@ -180,7 +188,7 @@ compound_stmt	:	T_begin { L = emptyList(); } compound_stmt0  T_end { $$ = $3; }
 compound_stmt0	:	/*EMPTY*/ { $$ = L; }
 		|	{ backpatch(L,nextQuad()); } 
                         stmt { L = $2; }
-                        compound_stmt0 { $$ = L; }
+                        compound_stmt0 { $$ = $4; }
 		;
 
 func_call	:	T_id T_oppar	{ if((fun_call=lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL)
@@ -222,12 +230,14 @@ expr_list0	:	expr	{ if(many_arg)
 		;
 
 expr		:	T_constnum	{ $$.type = typeInteger;
-                                          $$.place.placeType = CONSTNUM;
-                                          $$.place.u.constnum = $1; }
+                                          sprintf(buff,"%d",const_counter++);
+                                          $$.place.placeType = ENTRY;
+                                          $$.place.entry = newConstant(buff,typeInteger,$1); }
 
 		|	T_constchar	{ $$.type = typeChar;
-                                          $$.place.placeType = CONSTCHAR;
-                                          $$.place.u.constchar = $1; }
+                                          sprintf(buff,"%d",const_counter++);
+                                          $$.place.placeType = ENTRY;
+                                          $$.place.entry = newConstant(buff,typeChar,$1); }
 
 		|	l_value		{ $$.type = $1.type;
                                           $$.place = $1.place; }
@@ -266,7 +276,7 @@ expr		:	T_constnum	{ $$.type = typeInteger;
 		;
 
 
-l_value		:	lval_id
+l_value		:	lval_id                 { $$.place=$1.place; }
 		|	lval_id T_opj expr T_clj
                                                  {
                                                  if($3.type != typeInteger)
@@ -281,8 +291,7 @@ l_value		:	lval_id
                                                   op2 = createTemporary(typePointer($$.type));
                                                   genQuad(ARRAY,op0,op1,op2);
                                                   $$.place.placeType = REFERENCE;
-                                                  $$.place.u.entry = op2.u.place.u.entry;
-                                                        }
+                                                  $$.place.entry = op2.u.place.entry; }
 		;
 
 lval_id         : T_id	                        { if((lval = lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL)
@@ -290,13 +299,13 @@ lval_id         : T_id	                        { if((lval = lookupEntry($1,LOOKU
 				 		  if(lval->entryType == ENTRY_VARIABLE) {
 				 		  	$$.type = lval->u.eVariable.type;
                                                         $$.place.placeType = ENTRY;
-                                                        $$.place.u.entry = lval;
+                                                        $$.place.entry = lval;
                                                   }
 				  		  else {
                                                   if(lval->entryType == ENTRY_PARAMETER) {
 				  		  	$$.type = lval->u.eParameter.type;
                                                         $$.place.placeType = ENTRY;
-                                                        $$.place.u.entry = lval;
+                                                        $$.place.entry = lval;
                                                   }
 
 				  		  else error("Identifiers don't match"); } }
@@ -345,7 +354,7 @@ void binopQuad(oper opr, varstr *exp1, varstr *exp2, varstr *ret)
 		else {
                         ret->type = exp1->type;
                         op0.opType = OP_PLACE;
-                        op0.u.place = exp2->place;
+                        op0.u.place = exp1->place;
                         op1.opType = OP_PLACE;
                         op1.u.place = exp2->place;
                         op2 = createTemporary(exp2->type);
@@ -358,10 +367,10 @@ void binopQuad(oper opr, varstr *exp1, varstr *exp2, varstr *ret)
 operand createTemporary(Type type)
 {
   operand op;
-
-  op.opType = OP_TEMPORARY;
+  
+  op.opType = OP_PLACE;
   op.u.place.placeType = ENTRY;
-  op.u.place.u.entry = newTemporary(type);
+  op.u.place.entry = newTemporary(type);
   return op;
 }
 
