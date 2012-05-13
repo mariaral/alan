@@ -1,6 +1,7 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
 #include <string.h>
 #include "general.h"
 #include "error.h"
@@ -11,13 +12,14 @@ SymbolEntry *fun_decl, *fun_call;
 SymbolEntry *lval;
 SymbolEntry *currentArg;
 SymbolEntry *currrentFunction;
-operand op0,op1,op2;
+Place temp;
 labelList *L;
 bool many_arg;
 bool ret_exists, ret_at_end;
 void yyerror (const char msg[]);
 bool int_or_byte(Type a,Type b);
 bool equalArrays(Type a,Type b);
+operand op(op_type, ...);
 void binopQuad(oper, varstr *, varstr *, varstr *);
 operand createTemporary(Type);
 int yylex(void);
@@ -86,11 +88,7 @@ func_def	:	T_id					{
 			local_def0	{ ret_at_end=false; 
                                           ret_exists=false;  
                                           quadLast = NULL;
-                                          op0.opType = OP_NAME;
-                                          strcpy(op0.u.name,$1);
-                                          op1.opType = OP_NOTHING;
-                                          op2.opType = OP_NOTHING;
-                                          genQuad(UNIT,op0,op1,op2);
+                                          genQuad(UNIT,op(OP_NAME,$1),op(OP_NOTHING),op(OP_NOTHING));
 }
 			compound_stmt	{ currrentFunction = currentScope->parent->entries;
 					  if((!ret_exists)&&(!equalType(currrentFunction->u.eFunction.resultType,typeVoid)))
@@ -98,11 +96,7 @@ func_def	:	T_id					{
 					  else if((ret_exists)&&(!ret_at_end))
 					 	warning("Function doesn't return at end");
                                           backpatch($11, nextQuad());
-                                          op0.opType = OP_NAME;
-                                          strcpy(op0.u.name,$1);
-                                          op1.opType = OP_NOTHING;
-                                          op2.opType = OP_NOTHING;
-                                          genQuad(ENDU,op0,op1,op2);
+                                          genQuad(ENDU,op(OP_NAME,$1),op(OP_NOTHING),op(OP_NOTHING));
                                           printQuads();
                                           closeScope(); }
                 ;
@@ -154,12 +148,7 @@ stmt		:	T_semic	{ ret_at_end = false;
 		|	l_value T_assign expr T_semic	{ if(($1.type)->kind==TYPE_ARRAY) error("Left value cannot be type Array");
 							  else if($1.type!=$3.type) error("Expression must be same type with left value");
 							  ret_at_end = false;
-                                                          op0.opType = OP_PLACE;
-                                                          op0.u.place = $3.place;
-                                                          op1.opType = OP_NOTHING;
-                                                          op2.opType = OP_PLACE;
-                                                          op2.u.place = $1.place;
-                                                          genQuad(ASSIGN,op0,op1,op2);
+                                                          genQuad(ASSIGN,op(OP_PLACE,$3.place),op(OP_NOTHING),op(OP_PLACE,$1.place));
                                                           $$ = emptyList(); }
 		|	compound_stmt		{ ret_at_end = false;
                                                   $$ = $1; }
@@ -260,12 +249,9 @@ expr		:	T_constnum	{ $$.type = typeInteger;
 							error("Opperand must be type int");
 						  else {
                                                         $$.type = $2.type;
-                                                        op0.opType = OP_PLACE;
-                                                        op0.u.place = $2.place;
-                                                        op1.opType = OP_NOTHING;
-                                                        op2 = createTemporary($2.type);
-                                                        genQuad(MINUS,op0,op1,op2);
-                                                        $$.place = op2.u.place; } }
+                                                        temp = newTemp($2.type);
+                                                        genQuad(MINUS,op(OP_PLACE,$2.place),op(OP_NOTHING),op(OP_PLACE,temp));
+                                                        $$.place = temp; } }
 
 		|	expr T_plus expr	{ binopQuad(PLUS, &($1), &($3), &($$)); }
 		|	expr T_minus expr	{ binopQuad(MINUS, &($1), &($3), &($$)); }
@@ -284,14 +270,10 @@ l_value		:	lval_id                 { $$.place=$1.place; }
 				 		  if($1.type->kind != TYPE_ARRAY)
                                                         fatal("Identifier is not array");
 						  $$.type = $1.type->refType;
-                                                  op0.opType = OP_PLACE;
-                                                  op0.u.place = $1.place;
-                                                  op1.opType = OP_PLACE;
-                                                  op1.u.place = $3.place;
-                                                  op2 = createTemporary(typePointer($$.type));
-                                                  genQuad(ARRAY,op0,op1,op2);
+                                                  temp = newTemp(typePointer($$.type));
+                                                  genQuad(ARRAY,op(OP_PLACE,$1.place),op(OP_PLACE,$3.place),op(OP_PLACE,temp));
                                                   $$.place.placeType = REFERENCE;
-                                                  $$.place.entry = op2.u.place.entry; }
+                                                  $$.place.entry = temp.entry; }
 		;
 
 lval_id         : T_id	                        { if((lval = lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL)
@@ -344,6 +326,30 @@ bool equalArrays(Type a,Type b)
 	else return false;
 }
 
+operand op(op_type optype, ...)
+{
+        va_list ap;
+        operand op;
+        
+        op.opType = optype;
+        va_start(ap, optype);
+        switch (optype){
+        case OP_PLACE:
+            op.u.place = va_arg(ap, Place);
+            break;
+        case OP_LABEL:
+            op.u.label = va_arg(ap, int);
+            break;
+        case OP_NAME:
+            strcpy(op.u.name, va_arg(ap, char*));
+            break;
+        default:
+            break;
+        }
+        return op;
+        
+}
+
 void binopQuad(oper opr, varstr *exp1, varstr *exp2, varstr *ret)
 {
         if(!int_or_byte(exp1->type,exp2->type))
@@ -353,26 +359,13 @@ void binopQuad(oper opr, varstr *exp1, varstr *exp2, varstr *ret)
 	        	error("Operands must be same type");
 		else {
                         ret->type = exp1->type;
-                        op0.opType = OP_PLACE;
-                        op0.u.place = exp1->place;
-                        op1.opType = OP_PLACE;
-                        op1.u.place = exp2->place;
-                        op2 = createTemporary(exp2->type);
-                        genQuad(opr,op0,op1,op2);
-                        ret->place = op2.u.place;
+                        temp = newTemp(exp2->type);
+                        genQuad(opr,op(OP_PLACE,exp1->place),op(OP_PLACE,exp2->place),op(OP_PLACE,temp));
+                        ret->place = temp;
                  }
         }
 }
 
-operand createTemporary(Type type)
-{
-  operand op;
-  
-  op.opType = OP_PLACE;
-  op.u.place.placeType = ENTRY;
-  op.u.place.entry = newTemporary(type);
-  return op;
-}
 
 void yyerror (const char * msg)
 {
