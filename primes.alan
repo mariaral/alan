@@ -8,8 +8,10 @@ number : int;
 counter : int;
 ar : int[2];
 {
-	counter = 0;
-        ar[1] = 42;
-        if ((true)|(1==0)) counter = counter * ar[1];
+	--counter = 0;
+        --ar[1] = 42;
+        if (1==0) {
+        if (3<=4) counter = counter * 1;
+}
         --else number = 6*5+counter/ar[1];	
 } -- main

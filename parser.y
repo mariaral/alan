@@ -12,7 +12,7 @@ SymbolEntry *lval;
 SymbolEntry *currentArg;
 SymbolEntry *currrentFunction;
 Place temp;
-labelList *L, *L1, *L2;
+labelList *L;
 bool many_arg;
 bool ret_exists, ret_at_end;
 void yyerror (const char msg[]);
@@ -32,6 +32,11 @@ char buff[10];
         labelList *Next;
         boolean b;
         char Name[256];
+        struct {
+           labelList *L1;
+           labelList *L2;
+        } l;
+
 };
 
 
@@ -146,11 +151,15 @@ stmt		:	T_semic	{ ret_at_end = false;
 		|	func_call T_semic	{ if(!equalType($1,typeVoid)) error("Function must have type proc");
 						  ret_at_end = false; }
 		|	T_if T_oppar cond T_clpar { backpatch($3.True,nextQuad());
-                                                    L1 = $3.False;
-                                                    L2 = emptyList(); } 
-                        stmt else_stmt { $$ = merge(merge($6,L1),L2); ret_at_end = false; }
+                                                    $<l>$.L1 = $3.False;
+                                                    $<l>$.L2 = emptyList(); } 
+                        stmt else_stmt { $$ = merge(merge($6,$<l>7.L1),$<l>7.L2); ret_at_end = false; }
                         
-		|	T_while T_oppar cond T_clpar stmt	{ ret_at_end = false; }
+		|	T_while { $<i>$ = nextQuad(); } T_oppar cond T_clpar { backpatch($4.True,nextQuad()); } 
+                        stmt	{ backpatch($7,$<i>2);
+                                  genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_LABEL,$<i>2));
+                                  $$ = $4.False;
+                                  ret_at_end = false; }
 		|	T_return T_semic	{ currrentFunction = currentScope->parent->entries;
 						  if(currrentFunction->u.eFunction.resultType!=typeVoid)
 						  	error("Function returns no value");
@@ -165,13 +174,14 @@ stmt		:	T_semic	{ ret_at_end = false;
 						}
 		;
 
-else_stmt       :       /*EMPTY*/
+else_stmt       :       /*EMPTY*/ { $<l>$ = $<l>-1; }
                 |       T_else { genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
-                                 L1 = makeList(currentQuad());
+                                 $<Next>$ = makeList(currentQuad());
                                  backpatch($<b>-3.False,nextQuad()); }
 
                                  
-                        stmt { L2 = $3; }
+                        stmt { $<l>$.L2 = $3;
+                               $<l>$.L1 = $<Next>2;}
                 ;
 
 compound_stmt	:	T_begin { L = emptyList(); } compound_stmt0  T_end { $$ = $3; }
