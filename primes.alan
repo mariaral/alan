@@ -10,7 +10,6 @@ ar : int[2];
 {
 	counter = 0;
         ar[1] = 42;
-        
-        counter = counter * ar[1];
-	number = 6*5+counter/ar[1];	
+        if ((true)|(1==0)) counter = counter * ar[1];
+        --else number = 6*5+counter/ar[1];	
 } -- main

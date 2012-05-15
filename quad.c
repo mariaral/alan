@@ -1,6 +1,9 @@
 #include "quad.h"
+#include "error.h"
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdarg.h>
+#include <string.h>
 
 unsigned int quadNext= 0;
 quadListNode * quadFirst = NULL;
@@ -9,6 +12,11 @@ quadListNode * quadLast = NULL;
 int nextQuad()
 {
     return quadNext;
+}
+
+int currentQuad()
+{
+    return (quadNext-1);
 }
 /*
    operand address_of(operand x)
@@ -90,6 +98,73 @@ void backpatch(labelList * l, int z)
     }
 }
 
+operand op(op_type optype, ...)
+{
+    va_list ap;
+    operand op;
+
+    op.opType = optype;
+    va_start(ap, optype);
+    switch (optype){
+        case OP_PLACE:
+            op.u.place = va_arg(ap, Place);
+            break;
+        case OP_LABEL:
+            op.u.label = va_arg(ap, int);
+            break;
+        case OP_NAME:
+            strcpy(op.u.name, va_arg(ap, char*));
+            break;
+        default:
+            break;
+    }
+    return op;
+
+}
+
+bool int_or_byte(Type a,Type b)
+{
+    return (((a==typeInteger)||(a==typeChar))&&((b==typeInteger)||(b==typeChar)));
+}
+
+bool equalArrays(Type a,Type b)
+{
+    if(a->kind!=TYPE_ARRAY) return false;
+    else if (b->kind==TYPE_IARRAY) return true;
+    else return false;
+}
+
+void binopQuad(oper opr, varstr *exp1, varstr *exp2, varstr *ret)
+{
+    Place temp;
+
+    if(!int_or_byte(exp1->type,exp2->type))
+        error("Operands must be type int or byte");
+    else {
+        if(exp1->type != exp2->type)
+            error("Operands must be same type");
+        else {
+            ret->type = exp1->type;
+            temp = newTemp(exp2->type);
+            genQuad(opr,op(OP_PLACE,exp1->place),op(OP_PLACE,exp2->place),op(OP_PLACE,temp));
+            ret->place = temp;
+        }
+    }
+}
+
+void relopQuad(oper opr, varstr *exp1, varstr *exp2, boolean *ret)
+{
+    if(!int_or_byte(exp1->type,exp2->type))
+        error("Opperands must be int or byte");
+    else if(exp1->type!=exp2->type)
+        error("Cannot compaire different types");
+    genQuad(opr, op(OP_PLACE,exp1->place),op(OP_PLACE,exp2->place),op(OP_UNKNOWN));
+    ret->True = makeList(currentQuad());
+    genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
+    ret->False = makeList(currentQuad());
+}
+
+
 void printQuads()
 {
     quadListNode * temp;
@@ -98,16 +173,16 @@ void printQuads()
     while (temp != NULL) {
         printf("%d: ",temp->quadLabel);
         switch (temp->op) {
-        case UNIT:
-            printf("unit, ");
-            break;
-        case ENDU:
-            printf("endu, ");
-            break;
-        case PLUS:
-            printf("+, ");
-            break;
-        case MINUS:
+            case UNIT:
+                printf("unit, ");
+                break;
+            case ENDU:
+                printf("endu, ");
+                break;
+            case PLUS:
+                printf("+, ");
+                break;
+            case MINUS:
             printf("-, ");
             break;
         case MULT:
@@ -124,6 +199,27 @@ void printQuads()
             break;
         case ARRAY:
             printf("array, ");
+            break;
+        case EQ:
+            printf("=, ");
+            break;
+        case NEQ:
+            printf("<>, ");
+            break;
+        case LT:
+            printf("<, ");
+            break;
+        case GT:
+            printf(">, ");
+            break;
+        case LE:
+            printf("<=, ");
+            break;
+        case GE:
+            printf(">=, ");
+            break;
+        case JUMP:
+            printf("jump, ");
             break;
         }
         printOp(temp->operand0);
