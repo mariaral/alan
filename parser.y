@@ -1,7 +1,6 @@
 %{
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
 #include "general.h"
 #include "error.h"
@@ -13,15 +12,10 @@ SymbolEntry *lval;
 SymbolEntry *currentArg;
 SymbolEntry *currrentFunction;
 Place temp;
-labelList *L;
+labelList *L, *L1, *L2;
 bool many_arg;
 bool ret_exists, ret_at_end;
 void yyerror (const char msg[]);
-bool int_or_byte(Type a,Type b);
-bool equalArrays(Type a,Type b);
-operand op(op_type, ...);
-void binopQuad(oper, varstr *, varstr *, varstr *);
-operand createTemporary(Type);
 int yylex(void);
 int linecount=1;
 int const_counter=0;
@@ -36,10 +30,7 @@ char buff[10];
         char s[32];
         varstr var;
         labelList *Next;
-        struct {
-                labelList *True;
-                labelList *False;
-        } b;
+        boolean b;
         char Name[256];
 };
 
@@ -154,8 +145,11 @@ stmt		:	T_semic	{ ret_at_end = false;
                                                   $$ = $1; }
 		|	func_call T_semic	{ if(!equalType($1,typeVoid)) error("Function must have type proc");
 						  ret_at_end = false; }
-		|	T_if T_oppar cond T_clpar stmt		{ ret_at_end = false; }
-		|	T_if T_oppar cond T_clpar stmt T_else stmt	{ ret_at_end = false; }
+		|	T_if T_oppar cond T_clpar { backpatch($3.True,nextQuad());
+                                                    L1 = $3.False;
+                                                    L2 = emptyList(); } 
+                        stmt else_stmt { $$ = merge(merge($6,L1),L2); ret_at_end = false; }
+                        
 		|	T_while T_oppar cond T_clpar stmt	{ ret_at_end = false; }
 		|	T_return T_semic	{ currrentFunction = currentScope->parent->entries;
 						  if(currrentFunction->u.eFunction.resultType!=typeVoid)
@@ -170,6 +164,15 @@ stmt		:	T_semic	{ ret_at_end = false;
 						ret_exists = true;
 						}
 		;
+
+else_stmt       :       /*EMPTY*/
+                |       T_else { genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
+                                 L1 = makeList(currentQuad());
+                                 backpatch($<b>-3.False,nextQuad()); }
+
+                                 
+                        stmt { L2 = $3; }
+                ;
 
 compound_stmt	:	T_begin { L = emptyList(); } compound_stmt0  T_end { $$ = $3; }
 		;
@@ -292,79 +295,29 @@ lval_id         : T_id	                        { if((lval = lookupEntry($1,LOOKU
 
 				  		  else error("Identifiers don't match"); } }
 		;
-cond		:	T_true
-		|	T_false
-		|	T_oppar cond T_clpar
-		|	T_excl cond
-		|	expr T_eq expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
-					  else if($1.type!=$3.type) error("Cannot compaire different types"); }
-		|	expr T_ne expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
-					  else if($1.type!=$3.type) error("Cannot compaire different types"); }
-		|	expr T_gt expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
-					  else if($1.type!=$3.type) error("Cannot compaire different types"); }
-		|	expr T_lt expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
-					  else if($1.type!=$3.type) error("Cannot compaire different types"); }
-		|	expr T_ge expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
-					  else if($1.type!=$3.type) error("Cannot compaire different types"); }
-		|	expr T_le expr	{ if(!int_or_byte($1.type,$3.type)) error("Opperands must be int or byte");
-					  else if($1.type!=$3.type) error("Cannot compaire different types"); }
-		|	cond T_and cond
-		|	cond T_or cond
+cond		:	T_true  { genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
+                                  $$.True = makeList(currentQuad());
+                                  genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
+                                  $$.False = makeList(currentQuad()); }
+                |	T_false { genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
+                                  $$.False = makeList(currentQuad());
+                                  genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
+                                  $$.True = makeList(currentQuad()); }
+		|	T_oppar cond T_clpar { $$=$2; }
+		|	T_excl cond     { $$.True = $2.False; $$.False = $2.True; }
+		|	expr T_eq expr	{ relopQuad(EQ, &($1), &($3),&($$)); }
+		|	expr T_ne expr	{ relopQuad(NEQ, &($1), &($3),&($$)); }
+		|	expr T_gt expr	{ relopQuad(GT, &($1), &($3),&($$)); }
+		|	expr T_lt expr	{ relopQuad(LT, &($1), &($3),&($$)); }
+		|	expr T_ge expr	{ relopQuad(GE, &($1), &($3),&($$)); }
+		|	expr T_le expr	{ relopQuad(LE, &($1), &($3),&($$)); }
+		|	cond T_and { backpatch($1.True,nextQuad()); } cond
+                        { $$.True = $4.True; $$.False = merge($1.False,$4.False); }
+		|	cond T_or { backpatch($1.False,nextQuad()); } cond
+                        {  $$.True = merge($1.True,$4.True); $$.False = $4.False; }
 		;
 
 %%
-
-bool int_or_byte(Type a,Type b)
-{
-return (((a==typeInteger)||(a==typeChar))&&((b==typeInteger)||(b==typeChar)));
-}
-
-bool equalArrays(Type a,Type b)
-{
-	if(a->kind!=TYPE_ARRAY) return false;
-	else if (b->kind==TYPE_IARRAY) return true;
-	else return false;
-}
-
-operand op(op_type optype, ...)
-{
-        va_list ap;
-        operand op;
-        
-        op.opType = optype;
-        va_start(ap, optype);
-        switch (optype){
-        case OP_PLACE:
-            op.u.place = va_arg(ap, Place);
-            break;
-        case OP_LABEL:
-            op.u.label = va_arg(ap, int);
-            break;
-        case OP_NAME:
-            strcpy(op.u.name, va_arg(ap, char*));
-            break;
-        default:
-            break;
-        }
-        return op;
-        
-}
-
-void binopQuad(oper opr, varstr *exp1, varstr *exp2, varstr *ret)
-{
-        if(!int_or_byte(exp1->type,exp2->type))
-	        error("Operands must be type int or byte");
-	else {
-	  	if(exp1->type != exp2->type)
-	        	error("Operands must be same type");
-		else {
-                        ret->type = exp1->type;
-                        temp = newTemp(exp2->type);
-                        genQuad(opr,op(OP_PLACE,exp1->place),op(OP_PLACE,exp2->place),op(OP_PLACE,temp));
-                        ret->place = temp;
-                 }
-        }
-}
 
 
 void yyerror (const char * msg)

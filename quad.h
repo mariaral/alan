@@ -69,9 +69,18 @@ struct labelList_tag {
     labelList* next;
 };
 
+typedef struct boolean_tag boolean;
+
+struct boolean_tag {
+    labelList *True;
+    labelList *False;
+};
+
 quadListNode *quadFirst, *quadLast;
 
 int nextQuad();
+
+int currentQuad();
 
 void genQuad(oper, operand, operand, operand);
 
@@ -86,7 +95,17 @@ labelList * makeList(int);
 labelList * merge(labelList * , labelList * );
 
 void backpatch(labelList *, int);
-    
+
+bool int_or_byte(Type, Type);
+
+bool equalArrays(Type, Type);
+
+operand op(op_type, ...);
+
+void binopQuad(oper, varstr *, varstr *, varstr *);
+
+void relopQuad(oper, varstr *, varstr *, boolean *);
+
 void printQuads();
 
 void printOp(operand);
