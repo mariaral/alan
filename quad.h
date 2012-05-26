@@ -17,7 +17,9 @@ typedef enum {
     OP_PLACE,
     OP_LABEL,
     OP_NAME,
+    OP_STRING,
     OP_PASSMODE,
+    OP_RESULT,
     OP_UNKNOWN,
     OP_NOTHING
 } op_type;
@@ -40,6 +42,7 @@ struct operand_tag {
         int label;
         Place place;
         char name[256];
+        PassMode passmode;
     }u;
 };
 
@@ -105,6 +108,14 @@ operand op(op_type, ...);
 void binopQuad(oper, varstr *, varstr *, varstr *);
 
 void relopQuad(oper, varstr *, varstr *, boolean *);
+
+PassMode paramMode(SymbolEntry*);
+
+Type paramType(SymbolEntry*);
+
+bool paramChecked(bool*, SymbolEntry**, varstr);
+
+bool paramString(bool*, SymbolEntry**);
 
 void printQuads();
 
