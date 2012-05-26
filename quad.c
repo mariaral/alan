@@ -223,7 +223,7 @@ bool paramString(bool* many, SymbolEntry** point_arg)
         *many = true;
         return false;
     }
-    if(paramType(arg)!= typeIArray(typeChar)) {
+    if(!equalType(paramType(arg),typeIArray(typeChar))) {
         error("Wrong type of parameter");
         ret = false;
         goto out;
@@ -333,6 +333,9 @@ void printOp(operand op)
         break;
     case OP_RESULT:
         printf("RET");
+        break;
+    case OP_STRING:
+        printf("%s",op.u.name);
         break;
     case OP_PASSMODE:
         if(op.u.passmode==PASS_BY_VALUE)

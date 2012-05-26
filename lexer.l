@@ -49,9 +49,9 @@ specialchar \\([ntr0\\\"\']|x{hex}{2})
 
 
 {digit}+	{yylval.i = (int)installNum(); return(T_constnum);}
-{letter}({letter}|_|{digit})*		{ strncpy(yylval.s,yytext,32); return T_id; }
-\'({simplechar}|{specialchar})\'	{ /*yylval.Name = (char *)strdup(yytext);*/ return T_constchar; }
-\"({simplechar}|{white}|\\)*\"		{/*yylval.Name = (char *)strdup(yytext);*/ return T_string; }
+{letter}({letter}|_|{digit})*		{ strncpy(yylval.Name,yytext,256); return T_id; }
+\'({simplechar}|{specialchar})\'	{ yylval.c = yytext[0]; return T_constchar; }
+\"({simplechar}|{white}|\\)*\"		{ strncpy(yylval.Name,yytext,256); return T_string; }
 
 "--"([^\n])*\n			{ linecount++; }
 
