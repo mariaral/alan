@@ -1,9 +1,10 @@
-#include "quad.h"
-#include "error.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include "quad.h"
+#include "error.h"
+#include "typecheck.h"
 
 unsigned int quadNext= 0;
 quadListNode * quadFirst = NULL;
@@ -119,19 +120,6 @@ operand op(op_type optype, ...)
     return op;
 
 }
-
-bool int_or_byte(Type a,Type b)
-{
-    return (((a==typeInteger)||(a==typeChar))&&((b==typeInteger)||(b==typeChar)));
-}
-
-bool equalArrays(Type a,Type b)
-{
-    if(a->kind!=TYPE_ARRAY) return false;
-    else if (b->kind==TYPE_IARRAY) return true;
-    else return false;
-}
-
 void binopQuad(oper opr, varstr *exp1, varstr *exp2, varstr *ret)
 {
     Place temp;
@@ -166,77 +154,6 @@ PassMode paramMode(SymbolEntry* arg)
 {
     return (arg->u.eParameter.mode);
 }
-
-Type paramType(SymbolEntry* arg)
-{
-    return (arg->u.eParameter.type);
-}
-
-bool paramChecked(bool* many, SymbolEntry** point_arg, varstr exp)
-{
-    SymbolEntry* entry;
-    SymbolEntry* arg; 
-    bool ret;
-
-    arg = *point_arg;
-
-    if(*many==true) return false;
-    if(arg==NULL) {
-        error("Too many arguments at call");
-        *many = true;
-        return false;
-    }
-    if(arg->u.eParameter.mode==PASS_BY_REFERENCE) {
-        if(exp.place.placeType==ENTRY) {
-            entry = exp.place.entry;
-            if(entry->entryType!=ENTRY_VARIABLE) {
-                error("Cannot pass that type of expression by reference");
-                ret = false;
-                goto out;
-            }
-        }
-    }
-    if((!equalType(exp.type,paramType(arg)))&&(!equalArrays(exp.type,paramType(arg)))) {
-        error("Wrong type of parameter");
-        ret = false;
-        goto out;
-    }
-    else {
-        ret = true;
-        goto out;
-    }
-out:
-    *point_arg = arg->u.eParameter.next;
-    return ret;
-}
-
-bool paramString(bool* many, SymbolEntry** point_arg)
-{
-    SymbolEntry* arg;
-    bool ret;
-
-    arg = *point_arg;
-
-    if(*many==true) return false;
-    if(arg==NULL) {
-        error("Too many arguments at call");
-        *many = true;
-        return false;
-    }
-    if(!equalType(paramType(arg),typeIArray(typeChar))) {
-        error("Wrong type of parameter");
-        ret = false;
-        goto out;
-    }
-    else {
-        ret = true;
-        goto out;
-    }
-out:
-    *point_arg = arg->u.eParameter.next;
-    return ret;
-}
-
 
 void printQuads()
 {
@@ -358,6 +275,10 @@ void printOp(operand op)
                 printf("[$%d]",p.entry->u.eTemporary.number);
             else 
                 printf("$%d",p.entry->u.eTemporary.number);
+            break;
+        default:
+            printf("Unknown operand\n");
+            break;
             
         }
     }

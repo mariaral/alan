@@ -309,7 +309,10 @@ SymbolEntry * newConstant (const char * name, Type type, ...)
             case TYPE_ARRAY:
                 strcpy(buffer, "\"");
                 strAppendString(buffer, value.vString);
-                strcat(buffer, "\"");           
+                strcat(buffer, "\"");
+                break;
+            default:
+                break;           
         }
         e = newEntry(buffer);
     }
@@ -335,6 +338,9 @@ SymbolEntry * newConstant (const char * name, Type type, ...)
                 break;
             case TYPE_ARRAY:
                 e->u.eConstant.value.vString = value.vString;
+                break;
+            default:
+                break;
         }
     }
     return e;
@@ -601,6 +607,8 @@ void destroyType (Type type)
                 destroyType(type->refType);
                 delete(type);
             }
+        default:
+            break;
     }
 }
 
@@ -621,6 +629,8 @@ unsigned int sizeOfType (Type type)
             return 10;
         case TYPE_ARRAY:
             return type->size * sizeOfType(type->refType);
+        default:
+            break;
     }
     return 0;
 }
@@ -636,6 +646,8 @@ bool equalType (Type type1, Type type2)
         case TYPE_IARRAY:
         case TYPE_POINTER:
             return equalType(type1->refType, type2->refType);
+        default:
+            break;
     }
     return true;        
 }
