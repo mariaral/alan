@@ -9,10 +9,11 @@
 
 SymbolEntry *fun_decl, *fun_call;
 SymbolEntry *lval;
-SymbolEntry *currentArg;
+SymbolEntry *currentArg, *arg;
 SymbolEntry *currrentFunction;
 Place temp;
 labelList *L;
+Type retType;
 bool many_arg;
 bool ret_exists, ret_at_end;
 void yyerror (const char msg[]);
@@ -62,8 +63,8 @@ char buff[10];
 %left T_mult T_div T_mod
 %right UPLUS UMINUS T_excl
 
-%type<type> type data_type func_call r_type
-%type<var> l_value lval_id expr
+%type<type> type data_type r_type
+%type<var> l_value lval_id expr func_call
 %type<b> cond
 %type<Next> stmt compound_stmt compound_stmt0
 
@@ -148,7 +149,8 @@ stmt		:	T_semic	{ ret_at_end = false;
                                                           $$ = emptyList(); }
 		|	compound_stmt		{ ret_at_end = false;
                                                   $$ = $1; }
-		|	func_call T_semic	{ if(!equalType($1,typeVoid)) error("Function must have type proc");
+		|	func_call T_semic	{ if(!equalType($1.type,typeVoid)) error("Function must have type proc");
+                                                  $$ = emptyList();
 						  ret_at_end = false; }
 		|	T_if T_oppar cond T_clpar { backpatch($3.True,nextQuad());
                                                     $<l>$.L1 = $3.False;
@@ -163,14 +165,18 @@ stmt		:	T_semic	{ ret_at_end = false;
 		|	T_return T_semic	{ currrentFunction = currentScope->parent->entries;
 						  if(currrentFunction->u.eFunction.resultType!=typeVoid)
 						  	error("Function returns no value");
+                                                  genQuad(RET,op(OP_NOTHING),op(OP_NOTHING),op(OP_NOTHING));
 						  ret_at_end = true;
 						  ret_exists = true;
-						 }
+						  $$ = emptyList();
+                                                  }
 		|	T_return expr T_semic	{ currrentFunction = currentScope->parent->entries;
 						  if(currrentFunction->u.eFunction.resultType!=$2.type)
 						  	error("Function must return same type of value as declared");
+                                                genQuad(RET,op(OP_NOTHING),op(OP_NOTHING),op(OP_NOTHING));
 						ret_at_end = true;
 						ret_exists = true;
+						$$ = emptyList();
 						}
 		;
 
@@ -198,38 +204,54 @@ func_call	:	T_id T_oppar	{ if((fun_call=lookupEntry($1,LOOKUP_ALL_SCOPES,true))=
 					  if(fun_call->entryType!=ENTRY_FUNCTION)
 					  	fatal("Identifier is not a function");
 					  currentArg = fun_call->u.eFunction.firstArgument; }
-			expr_list T_clpar	{ $$ = fun_call->u.eFunction.resultType; }
+			expr_list T_clpar	{ retType = fun_call->u.eFunction.resultType;
+                                                  temp=newTemp(retType);
+                                                  genQuad(PAR,op(OP_RESULT),op(OP_PLACE,temp),op(OP_NOTHING));
+                                                  $$.type = retType;
+                                                  $$.place = temp;
+                                                  genQuad(CALL,op(OP_NOTHING),op(OP_NOTHING),op(OP_NAME,$1));
+                                                  }
 		;
 
 expr_list	:	/*EMPTY*/
-		|	expr_list0
+		|	{ many_arg=false; } expr_list0
 		;
 
-expr_list0	:	expr	{ if(many_arg)
-				  	many_arg=false;
-				  else {
-					if(currentArg!=NULL) {
-  			  	  		if((!equalType($1.type,currentArg->u.eParameter.type))&&(!equalArrays($1.type,currentArg->u.eParameter.type)))
-				  			error("Wrong type of parameter");
-				  		if(currentArg->u.eParameter.next != NULL)
-				  			error("Too few arguments at call");
-				  	}
-				  	else error("Too many arguments at call");
-				  }
+expr_list0	:	expr	{ arg=currentArg;
+                                  if(paramChecked(&many_arg,&currentArg,$1)) {
+                                      if(paramMode(arg)==PASS_BY_VALUE) {
+                                        temp=newTemp(paramType(arg));
+                                        genQuad(ASSIGN,op(OP_PLACE,$1.place),op(OP_NOTHING),op(OP_PLACE,temp));
+                                        genQuad(PAR,op(OP_PLACE,temp),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
+                                        }
+                                        else
+                                            genQuad(PAR,op(OP_PLACE,$1.place),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
+                                  }
+                                  if(currentArg!=NULL) error("Too few arguments at call");
 				}
-		|	expr	{ if(!many_arg) {
-				  	if(currentArg!=NULL) {
-				  		if((!equalType($1.type,currentArg->u.eParameter.type))&&(!equalArrays($1.type,currentArg->u.eParameter.type)))
-				  			error("Wrong type of parameter");
-				  		currentArg = currentArg->u.eParameter.next;
-				  	}
-				  	else {  error("Too many arguments at call");
-				    	    many_arg = true;
-				    	}
-				   }
-				 }
+                |       T_string        { arg=currentArg;
+                                          if(paramString(&many_arg,&currentArg)) 
+                                              genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
+                                          if(currentArg!=NULL) error("Too few arguments at call");
+                                        }
+		|	expr	{ arg=currentArg;
+                                  if(paramChecked(&many_arg,&currentArg,$1)) {
+                                      if(paramMode(arg)==PASS_BY_VALUE) {
+                                        temp=newTemp(paramType(arg));
+                                        genQuad(ASSIGN,op(OP_PLACE,$1.place),op(OP_NOTHING),op(OP_PLACE,temp));
+                                        genQuad(PAR,op(OP_PLACE,temp),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
+                                        }
+                                        else
+                                            genQuad(PAR,op(OP_PLACE,$1.place),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
+                                  }
+
+			        }
 		T_comma expr_list0
-		;
+                |       T_string        { arg=currentArg;
+                                          if(paramString(&many_arg,&currentArg)) 
+                                              genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING)); }
+                T_comma expr_list0
+                ;
 
 expr		:	T_constnum	{ $$.type = typeInteger;
                                           sprintf(buff,"%d",const_counter++);
@@ -244,11 +266,12 @@ expr		:	T_constnum	{ $$.type = typeInteger;
 		|	l_value		{ $$.type = $1.type;
                                           $$.place = $1.place; }
 
+
 		|	T_oppar expr T_clpar	{ $$.type = $2.type;
                                                   $$.place = $2.place;}
 
-		|	func_call	{ if($1!=typeVoid) {
-                                                $$.type = $1;
+		|	func_call	{ if($1.type!=typeVoid) {
+                                                $$ = $1;
 
                                           }
 					  else error("Cannot call proc"); }

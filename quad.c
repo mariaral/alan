@@ -18,15 +18,7 @@ int currentQuad()
 {
     return (quadNext-1);
 }
-/*
-   operand address_of(operand x)
-   {
-   operand r;
 
-   r.opType = OP_PLACE;
-   r.u.place = 
-   } 
-   */
 void genQuad(oper a, operand b, operand c, operand d)
 {
     quadListNode* newQuad;
@@ -115,6 +107,12 @@ operand op(op_type optype, ...)
         case OP_NAME:
             strcpy(op.u.name, va_arg(ap, char*));
             break;
+        case OP_STRING:
+            strcpy(op.u.name, va_arg(ap, char*));
+            break;
+        case OP_PASSMODE:
+            op.u.passmode = va_arg(ap, PassMode);
+            break;
         default:
             break;
     }
@@ -164,6 +162,81 @@ void relopQuad(oper opr, varstr *exp1, varstr *exp2, boolean *ret)
     ret->False = makeList(currentQuad());
 }
 
+PassMode paramMode(SymbolEntry* arg)
+{
+    return (arg->u.eParameter.mode);
+}
+
+Type paramType(SymbolEntry* arg)
+{
+    return (arg->u.eParameter.type);
+}
+
+bool paramChecked(bool* many, SymbolEntry** point_arg, varstr exp)
+{
+    SymbolEntry* entry;
+    SymbolEntry* arg; 
+    bool ret;
+
+    arg = *point_arg;
+
+    if(*many==true) return false;
+    if(arg==NULL) {
+        error("Too many arguments at call");
+        *many = true;
+        return false;
+    }
+    if(arg->u.eParameter.mode==PASS_BY_REFERENCE) {
+        if(exp.place.placeType==ENTRY) {
+            entry = exp.place.entry;
+            if(entry->entryType!=ENTRY_VARIABLE) {
+                error("Cannot pass that type of expression by reference");
+                ret = false;
+                goto out;
+            }
+        }
+    }
+    if((!equalType(exp.type,paramType(arg)))&&(!equalArrays(exp.type,paramType(arg)))) {
+        error("Wrong type of parameter");
+        ret = false;
+        goto out;
+    }
+    else {
+        ret = true;
+        goto out;
+    }
+out:
+    *point_arg = arg->u.eParameter.next;
+    return ret;
+}
+
+bool paramString(bool* many, SymbolEntry** point_arg)
+{
+    SymbolEntry* arg;
+    bool ret;
+
+    arg = *point_arg;
+
+    if(*many==true) return false;
+    if(arg==NULL) {
+        error("Too many arguments at call");
+        *many = true;
+        return false;
+    }
+    if(paramType(arg)!= typeIArray(typeChar)) {
+        error("Wrong type of parameter");
+        ret = false;
+        goto out;
+    }
+    else {
+        ret = true;
+        goto out;
+    }
+out:
+    *point_arg = arg->u.eParameter.next;
+    return ret;
+}
+
 
 void printQuads()
 {
@@ -173,16 +246,16 @@ void printQuads()
     while (temp != NULL) {
         printf("%d: ",temp->quadLabel);
         switch (temp->op) {
-            case UNIT:
-                printf("unit, ");
-                break;
-            case ENDU:
-                printf("endu, ");
-                break;
-            case PLUS:
-                printf("+, ");
-                break;
-            case MINUS:
+        case UNIT:
+            printf("unit, ");
+            break;
+        case ENDU:
+            printf("endu, ");
+            break;
+        case PLUS:
+            printf("+, ");
+            break;
+        case MINUS:
             printf("-, ");
             break;
         case MULT:
@@ -221,6 +294,15 @@ void printQuads()
         case JUMP:
             printf("jump, ");
             break;
+       case RET:
+            printf("ret, ");
+            break;
+       case PAR:
+            printf("par, ");
+            break;
+       case CALL:
+            printf("call, ");
+            break;
         }
         printOp(temp->operand0);
         printf(", ");
@@ -248,6 +330,14 @@ void printOp(operand op)
         break;
     case OP_NOTHING:
         printf("-");
+        break;
+    case OP_RESULT:
+        printf("RET");
+        break;
+    case OP_PASSMODE:
+        if(op.u.passmode==PASS_BY_VALUE)
+            printf("V");
+        else printf("R");
         break;
     case OP_PLACE:
         p = op.u.place;

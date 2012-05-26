@@ -1,17 +1,13 @@
 main () : proc 
-foo() : proc
-limit    : int;
+    foo(lim : int) : int
+        limit    : int;
+    {
+        limit = 0;
+        return limit;
+    } 
+    number : int;
+    counter : int;
 {
-limit = 0;
-} 
-number : int;
-counter : int;
-ar : int[2];
-{
-	--counter = 0;
-        --ar[1] = 42;
-        if (1==0) {
-        if (3<=4) counter = counter * 1;
+    counter = 1;
+    number = foo(counter);               
 }
-        --else number = 6*5+counter/ar[1];	
-} -- main
