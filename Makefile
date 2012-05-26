@@ -1,6 +1,6 @@
 
-CFILES   = symbol.c error.c general.c quad.c
-HFILES   = symbol.h error.h general.h quad.h
+CFILES   = symbol.c error.c general.c quad.c libalan.c
+HFILES   = symbol.h error.h general.h quad.h libalan.h
 GENFILES = lexer.c parser.h parser.c parser.output
 OBJFILES = $(patsubst %.c,%.o,$(CFILES)) lexer.o parser.o
 EXEFILES = alan

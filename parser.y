@@ -6,6 +6,7 @@
 #include "error.h"
 #include "symbol.h"
 #include "quad.h"
+#include "libalan.h"
 
 SymbolEntry *fun_decl, *fun_call;
 SymbolEntry *lval;
@@ -28,7 +29,6 @@ char buff[10];
         char    c;
         oper op;
         Type type;
-        char s[32];
         varstr var;
         labelList *Next;
         boolean b;
@@ -230,7 +230,7 @@ expr_list0	:	expr	{ arg=currentArg;
                                   if(currentArg!=NULL) error("Too few arguments at call");
 				}
                 |       T_string        { arg=currentArg;
-                                          if(paramString(&many_arg,&currentArg)) 
+                                          if(paramString(&many_arg,&currentArg))
                                               genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
                                           if(currentArg!=NULL) error("Too few arguments at call");
                                         }

@@ -1,13 +1,14 @@
 main () : proc 
-    foo(lim : int) : int
-        limit    : int;
+    foo(lim : byte[]) : int
+    limit : int;    
     {
-        limit = 0;
+        
+limit = 0;
         return limit;
     } 
     number : int;
     counter : int;
 {
     counter = 1;
-    number = foo(counter);               
+    number = foo("hello");               
 }
