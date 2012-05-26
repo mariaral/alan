@@ -1,6 +1,6 @@
 
-CFILES   = symbol.c error.c general.c quad.c libalan.c
-HFILES   = symbol.h error.h general.h quad.h libalan.h
+CFILES   = symbol.c error.c general.c quad.c libalan.c typecheck.c
+HFILES   = symbol.h error.h general.h quad.h libalan.h typecheck.h
 GENFILES = lexer.c parser.h parser.c parser.output
 OBJFILES = $(patsubst %.c,%.o,$(CFILES)) lexer.o parser.o
 EXEFILES = alan
@@ -13,6 +13,9 @@ CFLAGS=-Wall -ansi -pedantic -g
 
 all: $(OBJFILES)
 	$(CC) $(CFLAGS) -o $(EXEFILES) $(OBJFILES) -lfl
+
+lexer.o : lexer.c
+	$(CC) $(CFLAGS) -Wno-implicit-function-declaration -Wno-unused-function -c $<
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<

@@ -7,6 +7,7 @@
 #include "symbol.h"
 #include "quad.h"
 #include "libalan.h"
+#include "typecheck.h"
 
 SymbolEntry *fun_decl, *fun_call;
 SymbolEntry *lval;
@@ -206,7 +207,6 @@ func_call	:	T_id T_oppar	{ if((fun_call=lookupEntry($1,LOOKUP_ALL_SCOPES,true))=
 					  currentArg = fun_call->u.eFunction.firstArgument; }
 			expr_list T_clpar	{ 
                                                   if((retType=fun_call->u.eFunction.resultType)!=typeVoid) {
-                                                      fun_call->u.eFunction.resultType;
                                                       temp=newTemp(retType);
                                                       genQuad(PAR,op(OP_RESULT),op(OP_PLACE,temp),op(OP_NOTHING));
                                                       $$.place = temp;

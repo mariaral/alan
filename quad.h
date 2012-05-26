@@ -9,8 +9,7 @@ typedef enum {
     PLUS, MINUS, MULT, DIVI, MOD,
     ASSIGN, ARRAY,
     EQ, NEQ, LT, GT, LE, GE,
-    IFB, JUMP, JUMPL,
-    CALL, PAR, RET
+    JUMP, CALL, PAR, RET
 } oper;
 
 typedef enum {
@@ -87,8 +86,6 @@ int currentQuad();
 
 void genQuad(oper, operand, operand, operand);
 
-/*operand address_of(operand);*/
-
 Place newTemp(Type);
 
 labelList * emptyList();
@@ -99,10 +96,6 @@ labelList * merge(labelList * , labelList * );
 
 void backpatch(labelList *, int);
 
-bool int_or_byte(Type, Type);
-
-bool equalArrays(Type, Type);
-
 operand op(op_type, ...);
 
 void binopQuad(oper, varstr *, varstr *, varstr *);
@@ -110,12 +103,6 @@ void binopQuad(oper, varstr *, varstr *, varstr *);
 void relopQuad(oper, varstr *, varstr *, boolean *);
 
 PassMode paramMode(SymbolEntry*);
-
-Type paramType(SymbolEntry*);
-
-bool paramChecked(bool*, SymbolEntry**, varstr);
-
-bool paramString(bool*, SymbolEntry**);
 
 void printQuads();
 
