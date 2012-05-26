@@ -149,7 +149,7 @@ stmt		:	T_semic	{ ret_at_end = false;
                                                           $$ = emptyList(); }
 		|	compound_stmt		{ ret_at_end = false;
                                                   $$ = $1; }
-		|	func_call T_semic	{ if(!equalType($1.type,typeVoid)) error("Function must have type proc");
+		|	func_call T_semic	{ if(!equalType($1.type,typeVoid)) warning("Function result is not used");
                                                   $$ = emptyList();
 						  ret_at_end = false; }
 		|	T_if T_oppar cond T_clpar { backpatch($3.True,nextQuad());
@@ -204,11 +204,14 @@ func_call	:	T_id T_oppar	{ if((fun_call=lookupEntry($1,LOOKUP_ALL_SCOPES,true))=
 					  if(fun_call->entryType!=ENTRY_FUNCTION)
 					  	fatal("Identifier is not a function");
 					  currentArg = fun_call->u.eFunction.firstArgument; }
-			expr_list T_clpar	{ retType = fun_call->u.eFunction.resultType;
-                                                  temp=newTemp(retType);
-                                                  genQuad(PAR,op(OP_RESULT),op(OP_PLACE,temp),op(OP_NOTHING));
+			expr_list T_clpar	{ 
+                                                  if((retType=fun_call->u.eFunction.resultType)!=typeVoid) {
+                                                      fun_call->u.eFunction.resultType;
+                                                      temp=newTemp(retType);
+                                                      genQuad(PAR,op(OP_RESULT),op(OP_PLACE,temp),op(OP_NOTHING));
+                                                      $$.place = temp;
+                                                      }
                                                   $$.type = retType;
-                                                  $$.place = temp;
                                                   genQuad(CALL,op(OP_NOTHING),op(OP_NOTHING),op(OP_NAME,$1));
                                                   }
 		;
