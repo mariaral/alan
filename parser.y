@@ -9,6 +9,7 @@
 #include "libalan.h"
 #include "typecheck.h"
 
+
 SymbolEntry *fun_decl, *fun_call;
 SymbolEntry *lval;
 SymbolEntry *currentArg, *arg;
@@ -16,7 +17,8 @@ SymbolEntry *currrentFunction;
 Place temp;
 labelList *L;
 Type retType;
-bool many_arg;
+bool many_arg, typeError;
+bool global_typeError;
 bool ret_exists, ret_at_end;
 void yyerror (const char msg[]);
 int yylex(void);
@@ -74,7 +76,7 @@ char buff[10];
 
 %%
 
-program		:	{ openScope(); init_ready_functions(); }	func_def	{ closeScope(); }
+program		:	{ global_typeError = false; openScope(); init_ready_functions(); }	func_def	{ closeScope(); }
 		;
 
 func_def	:	T_id					{
@@ -89,13 +91,16 @@ func_def	:	T_id					{
                                           genQuad(UNIT,op(OP_NAME,$1),op(OP_NOTHING),op(OP_NOTHING));
 }
 			compound_stmt	{ currrentFunction = currentScope->parent->entries;
-					  if((!ret_exists)&&(!equalType(currrentFunction->u.eFunction.resultType,typeVoid)))
-					  	error("Non proc functions must return value");
+					  if((!ret_exists)&&(!equalType(currrentFunction->u.eFunction.resultType,typeVoid))) 
+                                                error("Non proc functions must return value");
+                                                
+                                          
 					  else if((ret_exists)&&(!ret_at_end))
 					 	warning("Function doesn't return at end");
                                           backpatch($11, nextQuad());
                                           genQuad(ENDU,op(OP_NAME,$1),op(OP_NOTHING),op(OP_NOTHING));
-                                          printQuads();
+                                          if(!global_typeError)
+                                                printQuads();
                                           closeScope(); }
                 ;
 
@@ -109,13 +114,15 @@ fpar_list	:	/*EMPTY*/
 
 fpar_list0	:	/*EMPTY*/
 		|	fpar_list0 T_comma fpar_def
-		|	fpar_list0 fpar_def	{ error("parameters must be separated by ,"); }
+		|	fpar_list0 fpar_def	{ error("parameters must be separated by ,");
+                                                   }
 		;
 
 fpar_def	:	T_id T_dd type	{ if($3->kind != TYPE_IARRAY)
 					  	newParameter($1, $3, PASS_BY_VALUE, fun_decl);
 					  else {
 					  	error("Arrays must always pass by reference");
+                                                
 					  	newParameter($1, $3, PASS_BY_REFERENCE, fun_decl);
 					  	} }
 		|	T_id T_dd T_reference type	{ newParameter($1, $4, PASS_BY_REFERENCE, fun_decl); }
@@ -143,10 +150,17 @@ var_def		:	T_id T_dd data_type T_semic	{ newVariable($1, $3); }
 
 stmt		:	T_semic	{ ret_at_end = false;
                                   $$ = emptyList(); }
-		|	l_value T_assign expr T_semic	{ if(($1.type)->kind==TYPE_ARRAY) error("Left value cannot be type Array");
-							  else if($1.type!=$3.type) error("Expression must be same type with left value");
-							  ret_at_end = false;
+		|	l_value T_assign expr T_semic	{ if(($1.type)->kind==TYPE_ARRAY) 
+                                                                error("Left value cannot be type Array");
+                                                                
+                                                          
+							  else if($1.type!=$3.type)  
+                                                                error("Expression must be same type with left value");
+                                                                
+                                                          
+                                                          else 
                                                           genQuad(ASSIGN,op(OP_PLACE,$3.place),op(OP_NOTHING),op(OP_PLACE,$1.place));
+							  ret_at_end = false;
                                                           $$ = emptyList(); }
 		|	compound_stmt		{ ret_at_end = false;
                                                   $$ = $1; }
@@ -164,16 +178,20 @@ stmt		:	T_semic	{ ret_at_end = false;
                                   $$ = $4.False;
                                   ret_at_end = false; }
 		|	T_return T_semic	{ currrentFunction = currentScope->parent->entries;
-						  if(currrentFunction->u.eFunction.resultType!=typeVoid)
-						  	error("Function returns no value");
+						  if(currrentFunction->u.eFunction.resultType!=typeVoid) 
+                                                        error("Function returns no value");
+                                                        
+                                                  
                                                   genQuad(RET,op(OP_NOTHING),op(OP_NOTHING),op(OP_NOTHING));
 						  ret_at_end = true;
 						  ret_exists = true;
 						  $$ = emptyList();
                                                   }
 		|	T_return expr T_semic	{ currrentFunction = currentScope->parent->entries;
-						  if(currrentFunction->u.eFunction.resultType!=$2.type)
-						  	error("Function must return same type of value as declared");
+						  if(currrentFunction->u.eFunction.resultType!=$2.type) 
+                                                        error("Function must return same type of value as declared");
+                                                        
+                                                  
                                                 genQuad(RET,op(OP_NOTHING),op(OP_NOTHING),op(OP_NOTHING));
 						ret_at_end = true;
 						ret_exists = true;
@@ -200,27 +218,44 @@ compound_stmt0	:	/*EMPTY*/ { $$ = L; }
                         compound_stmt0 { $$ = $4; }
 		;
 
-func_call	:	T_id T_oppar	{ if((fun_call=lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL)
-					  	fatal("Identifier cannot be found");
-					  if(fun_call->entryType!=ENTRY_FUNCTION)
-					  	fatal("Identifier is not a function");
-					  currentArg = fun_call->u.eFunction.firstArgument; }
+func_call	:	T_id T_oppar	{ typeError = false;
+                                           if((fun_call=lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL) {
+                                                error("Identifier cannot be found");
+                                                typeError = true;
+                                                
+                                                fun_decl = newFunction($1);
+                                                endFunctionHeader(fun_decl,typeUnknown);
+                                          }
+					  else if(fun_call->entryType!=ENTRY_FUNCTION) {
+					  	error("Identifier is not a function");
+                                                
+                                                typeError = true;
+                                          }
+                                          else
+					        currentArg = fun_call->u.eFunction.firstArgument; }
 			expr_list T_clpar	{ 
-                                                  if((retType=fun_call->u.eFunction.resultType)!=typeVoid) {
-                                                      temp=newTemp(retType);
-                                                      genQuad(PAR,op(OP_RESULT),op(OP_PLACE,temp),op(OP_NOTHING));
-                                                      $$.place = temp;
+                                                  if(!typeError) {
+                                                      if((retType=fun_call->u.eFunction.resultType)!=typeVoid) {
+                                                          temp=newTemp(retType);
+                                                          genQuad(PAR,op(OP_RESULT),op(OP_PLACE,temp),op(OP_NOTHING));
+                                                          $$.place = temp;
                                                       }
-                                                  $$.type = retType;
-                                                  genQuad(CALL,op(OP_NOTHING),op(OP_NOTHING),op(OP_NAME,$1));
+                                                      $$.type = retType;
+                                                      genQuad(CALL,op(OP_NOTHING),op(OP_NOTHING),op(OP_NAME,$1));
                                                   }
+                                                  else {
+                                                        $$.type = typeUnknown;
+                                                        typeError = false;
+                                                  }
+                                                }
 		;
 
 expr_list	:	/*EMPTY*/
 		|	{ many_arg=false; } expr_list0
 		;
 
-expr_list0	:	expr	{ arg=currentArg;
+expr_list0	:	expr	{ if(typeError) break;
+                                  arg=currentArg;
                                   if(paramChecked(&many_arg,&currentArg,$1)) {
                                       if(paramMode(arg)==PASS_BY_VALUE) {
                                         temp=newTemp(paramType(arg));
@@ -230,15 +265,23 @@ expr_list0	:	expr	{ arg=currentArg;
                                         else
                                             genQuad(PAR,op(OP_PLACE,$1.place),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
                                   }
-                                  if(currentArg!=NULL) error("Too few arguments at call");
-				}
-                |       T_string        { arg=currentArg;
+                                  if(currentArg!=NULL)  
+                                        error("Too few arguments at call");
+                                        
+                                 }
+				
+                |       T_string        { if(typeError) break;
+                                          arg=currentArg;
                                           if(paramString(&many_arg,&currentArg))
                                               genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
-                                          if(currentArg!=NULL) error("Too few arguments at call");
+                                          if(currentArg!=NULL) 
+                                                error("Too few arguments at call");
+                                                
+                                          
                                         }
-		|	expr	{ arg=currentArg;
-                                  if(paramChecked(&many_arg,&currentArg,$1)) {
+		|	expr	{  if(typeError) break;
+                                   arg=currentArg;
+                                   if(paramChecked(&many_arg,&currentArg,$1)) {
                                       if(paramMode(arg)==PASS_BY_VALUE) {
                                         temp=newTemp(paramType(arg));
                                         genQuad(ASSIGN,op(OP_PLACE,$1.place),op(OP_NOTHING),op(OP_PLACE,temp));
@@ -246,13 +289,15 @@ expr_list0	:	expr	{ arg=currentArg;
                                         }
                                         else
                                             genQuad(PAR,op(OP_PLACE,$1.place),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
-                                  }
+                                   }
 
 			        }
 		T_comma expr_list0
-                |       T_string        { arg=currentArg;
+                |       T_string        { if(typeError) break;
+                                          arg=currentArg;
                                           if(paramString(&many_arg,&currentArg)) 
-                                              genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING)); }
+                                              genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
+                                        }
                 T_comma expr_list0
                 ;
 
@@ -277,15 +322,25 @@ expr		:	T_constnum	{ $$.type = typeInteger;
                                                 $$ = $1;
 
                                           }
-					  else error("Cannot call proc"); }
+					  else 
+                                                error("Cannot call proc");
+                                            
+                                          
+                                        }
 
-		|	T_plus expr %prec UPLUS	{ if($2.type!=typeInteger)
+		|	T_plus expr %prec UPLUS	{ if($2.type!=typeInteger) 
 							error("Opperand must be type int");
+                                                        
+                                                  
 						  else { $$.type = $2.type;
                                                          $$.place = $2.place; } }
 
-		|	T_minus expr %prec UMINUS	{ if($2.type!=typeInteger)
-							error("Opperand must be type int");
+		|	T_minus expr %prec UMINUS	{ if($2.type!=typeInteger) 
+                  					      error("Opperand must be type int");
+                                                              
+                                                           
+                                                     
+                                                              
 						  else {
                                                         $$.type = $2.type;
                                                         temp = newTemp($2.type);
@@ -304,8 +359,10 @@ expr		:	T_constnum	{ $$.type = typeInteger;
 l_value		:	lval_id                 { $$.place=$1.place; }
 		|	lval_id T_opj expr T_clj
                                                  {
-                                                 if($3.type != typeInteger)
+                                                 if($3.type != typeInteger) 
 						  	error("Array index must be integer");
+                                                        
+                                                  
 				 		  if($1.type->kind != TYPE_ARRAY)
                                                         fatal("Identifier is not array");
 						  $$.type = $1.type->refType;
@@ -323,13 +380,18 @@ lval_id         : T_id	                        { if((lval = lookupEntry($1,LOOKU
                                                         $$.place.entry = lval;
                                                   }
 				  		  else {
-                                                  if(lval->entryType == ENTRY_PARAMETER) {
-				  		  	$$.type = lval->u.eParameter.type;
-                                                        $$.place.placeType = ENTRY;
-                                                        $$.place.entry = lval;
-                                                  }
+                                                      if(lval->entryType == ENTRY_PARAMETER) {
+				  		      	    $$.type = lval->u.eParameter.type;
+                                                            $$.place.placeType = ENTRY;
+                                                            $$.place.entry = lval;
+                                                      }
 
-				  		  else error("Identifiers don't match"); } }
+				  		      else 
+                                                        error("Identifiers don't match");
+                                                        
+                                                      
+                                                  } 
+                                               }
 		;
 cond		:	T_true  { genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
                                   $$.True = makeList(currentQuad());

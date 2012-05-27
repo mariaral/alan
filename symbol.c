@@ -48,7 +48,8 @@ static struct Type_tag typeConst [] = {
     { TYPE_INTEGER, NULL, 0, 0 },
     { TYPE_BOOLEAN, NULL, 0, 0 },
     { TYPE_CHAR,    NULL, 0, 0 },
-    { TYPE_REAL,    NULL, 0, 0 }
+    { TYPE_REAL,    NULL, 0, 0 },
+    { TYPE_UNKNOWN, NULL, 0, 0 }
 };
 
 const Type typeVoid    = &(typeConst[0]);
@@ -56,6 +57,7 @@ const Type typeInteger = &(typeConst[1]);
 const Type typeBoolean = &(typeConst[2]);
 const Type typeChar    = &(typeConst[3]);
 const Type typeReal    = &(typeConst[4]);
+const Type typeUnknown = &(typeConst[5]);
 
 
 /* ---------------------------------------------------------------------
@@ -686,6 +688,9 @@ void printType (Type type)
         case TYPE_POINTER:
             printf("^");
             printType(type->refType);
+            break;
+        case TYPE_UNKNOWN:
+            printf("unknown");
             break;
     }
 }
