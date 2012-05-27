@@ -73,7 +73,8 @@ struct Type_tag {
        TYPE_REAL,                        /* Πραγματικοί               */
        TYPE_ARRAY,                       /* Πίνακες γνωστού μεγέθους  */
        TYPE_IARRAY,                      /* Πίνακες άγνωστου μεγέθους */
-       TYPE_POINTER                      /* Δείκτες                   */
+       TYPE_POINTER,                     /* Δείκτες                   */
+       TYPE_UNKNOWN                      /* Άγνωστου τύπου            */
     } kind;
     Type           refType;              /* Τύπος αναφοράς            */
     RepInteger     size;                 /* Μέγεθος, αν είναι πίνακας */
@@ -193,6 +194,7 @@ extern const Type typeInteger;
 extern const Type typeBoolean;
 extern const Type typeChar;
 extern const Type typeReal;
+extern const Type typeUnknown;
 
 
 /* ---------------------------------------------------------------------

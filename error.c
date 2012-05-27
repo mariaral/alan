@@ -29,11 +29,13 @@
 
 #include "general.h"
 #include "error.h"
+#include <stdbool.h>
 
 
 /* ---------------------------------------------------------------------
    --------- Υλοποίηση των συναρτήσεων του χειριστή σφαλμάτων ----------
    --------------------------------------------------------------------- */
+extern bool global_typeError;
 
 void internal (const char * fmt, ...)
 {
@@ -80,6 +82,7 @@ void error (const char * fmt, ...)
    vfprintf(stderr, fmt, ap);
    fprintf(stderr, "\n");
    va_end(ap);
+   global_typeError = true;
 }
 
 void warning (const char * fmt, ...)
