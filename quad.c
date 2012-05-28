@@ -123,28 +123,42 @@ operand op(op_type optype, ...)
 void binopQuad(oper opr, varstr *exp1, varstr *exp2, varstr *ret)
 {
     Place temp;
-
-    if(!int_or_byte(exp1->type,exp2->type))
-        error("Operands must be type int or byte");
-    else {
-        if(exp1->type != exp2->type)
-            error("Operands must be same type");
-        else {
-            ret->type = exp1->type;
-            temp = newTemp(exp2->type);
-            genQuad(opr,op(OP_PLACE,exp1->place),op(OP_PLACE,exp2->place),op(OP_PLACE,temp));
-            ret->place = temp;
-        }
+    if(unknownType(exp1->type,exp2->type)) {
+        ret->type = typeUnknown;
+        return;
     }
+    if(!int_or_byte(exp1->type,exp2->type)) {
+        error("Operands must be type int or byte");
+        ret->type = typeUnknown;
+        return;
+    }
+    if(exp1->type != exp2->type) {
+        error("Operands must be same type");
+        ret->type = typeUnknown;
+        return;
+    }
+    ret->type = exp1->type;
+    temp = newTemp(exp2->type);
+    genQuad(opr,op(OP_PLACE,exp1->place),op(OP_PLACE,exp2->place),op(OP_PLACE,temp));
+    ret->place = temp;
 }
+
+
 
 void relopQuad(oper opr, varstr *exp1, varstr *exp2, boolean *ret)
 {
-    if(!int_or_byte(exp1->type,exp2->type))
+    if(unknownType(exp1->type,exp2->type))
+        goto out;
+    if(!int_or_byte(exp1->type,exp2->type)) {
         error("Opperands must be int or byte");
-    else if(exp1->type!=exp2->type)
+        goto out;
+    }
+    if(exp1->type!=exp2->type) {
         error("Cannot compaire different types");
+        goto out;
+    }
     genQuad(opr, op(OP_PLACE,exp1->place),op(OP_PLACE,exp2->place),op(OP_UNKNOWN));
+out:    
     ret->True = makeList(currentQuad());
     genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
     ret->False = makeList(currentQuad());
@@ -265,6 +279,9 @@ void printOp(operand op)
         case ENTRY_VARIABLE:
             printf("%s",p.entry->id);
             break;
+        case ENTRY_PARAMETER:
+            printf("%s",p.entry->id);
+            break;
         case ENTRY_CONSTANT:
             if(p.entry->u.eConstant.type == typeInteger)
                 printf("%d",p.entry->u.eConstant.value.vInteger);
@@ -277,7 +294,7 @@ void printOp(operand op)
                 printf("$%d",p.entry->u.eTemporary.number);
             break;
         default:
-            printf("Unknown operand\n");
+            printf("Unknown operand");
             break;
             
         }

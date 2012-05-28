@@ -15,6 +15,12 @@ bool equalArrays(Type a,Type b)
     else return false;
 }
 
+bool unknownType(Type a, Type b) {
+    return ((a==typeUnknown)||(b==typeUnknown));
+}
+
+
+
 Type paramType(SymbolEntry* arg)
 {
     return (arg->u.eParameter.type);
@@ -37,7 +43,7 @@ bool paramChecked(bool* many, SymbolEntry** point_arg, varstr exp)
     if(arg->u.eParameter.mode==PASS_BY_REFERENCE) {
         if(exp.place.placeType==ENTRY) {
             entry = exp.place.entry;
-            if(entry->entryType!=ENTRY_VARIABLE) {
+            if((entry->entryType!=ENTRY_VARIABLE)&&(entry->entryType!=ENTRY_PARAMETER)) {
                 error("Cannot pass that type of expression by reference");
                 ret = false;
                 goto out;

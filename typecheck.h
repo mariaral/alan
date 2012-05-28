@@ -7,6 +7,8 @@ bool int_or_byte(Type, Type);
 
 bool equalArrays(Type, Type);
 
+bool unknownType(Type, Type);
+
 Type paramType(SymbolEntry*);
 
 bool paramChecked(bool*, SymbolEntry**, varstr);

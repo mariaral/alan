@@ -12,10 +12,10 @@ redefError() : proc
     return;
   }
 
-  fun2() : proc
-    fun2(i : int) : proc
-    {}
+ fun2() : proc
+ fun2(i : int) : proc
   {}
+ {}
   writeString(buf : reference byte[]) : proc
   {}
 {
