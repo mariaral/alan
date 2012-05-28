@@ -1,8 +1,8 @@
 arrayParamErr() : proc
-  foo(foo : byte []) : proc
+  foo2(foo : byte []) : proc
   {
     writeString(foo);
   }
 {
-  foo("42\n");
+  foo2("42\n");
 }
