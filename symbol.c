@@ -700,3 +700,32 @@ void printMode (PassMode mode)
     if (mode == PASS_BY_REFERENCE)
         printf("var ");
 }
+
+/*****************************************************************************/
+/***** Add my destroy entry that destrroys an entry from current scope *******/ 
+/***** without destroying the current scope **********************************/
+
+void destroyLocalEntry(SymbolEntry * e)
+{
+    SymbolEntry* temp;
+
+    if(e==NULL) return;   
+    temp = currentScope->entries;
+    if(temp==NULL) return;
+    if(temp==e)
+        currentScope->entries = e->nextInScope;
+    else {
+        while(temp->nextInScope!=NULL) {
+            if(temp->nextInScope==e) {
+                temp->nextInScope = e->nextInScope;
+                break;
+            }
+            temp = temp->nextInScope;
+        }
+    }    
+    hashTable[e->hashValue] = e->nextHash;
+    destroyEntry(e);
+}
+
+
+        
