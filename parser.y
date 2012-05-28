@@ -268,8 +268,12 @@ func_call     :	T_id T_oppar	{ typeError = false;
                                        genQuad(CALL,op(OP_NOTHING),op(OP_NOTHING),op(OP_NAME,$1)); }
         ;
 
-expr_list   :	/*EMPTY*/
-            |	{ many_arg=false; } expr_list0
+expr_list   :	/*EMPTY*/ { if(currentArg!=NULL) {
+                                error("Too few arguments at call");
+                                break;
+                            } }
+            |	{ many_arg=false; } 
+                expr_list0
             ;
 
 expr_list0	:	expr	{ if(typeError) break;
@@ -384,6 +388,7 @@ l_value	:	lval_id                     { $$ = $1; }
                                           $$.type = $1.type->refType;
                                           temp = newTemp(typePointer($$.type));
                                           genQuad(ARRAY,op(OP_PLACE,$1.place),op(OP_PLACE,$3.place),op(OP_PLACE,temp));
+                                          $$.place.placeType = REFERENCE;
                                           $$.place.entry = temp.entry; }
         ;
 
