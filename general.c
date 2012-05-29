@@ -24,10 +24,12 @@
    --------------------------------------------------------------------- */
 
 #include <stdlib.h>
+#include <gc.h>
 
 #include "general.h"
 #include "symbol.h"
 #include "error.h"
+
 
 
 /* ---------------------------------------------------------------------
@@ -36,7 +38,7 @@
 
 void * new (size_t size)
 {
-   void * result = malloc(size);
+   void * result = GC_MALLOC(size);
    
    if (result == NULL)
       fatal("\rOut of memory");
@@ -46,7 +48,7 @@ void * new (size_t size)
 void delete (void * p)
 {
    if (p != NULL)
-      free(p);
+      GC_FREE(p);
 }
 
 /* ---------------------------------------------------------------------

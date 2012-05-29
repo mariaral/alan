@@ -1,4 +1,4 @@
-
+GCLIB	 = ./gc/lib/libgc.a
 CFILES   = symbol.c error.c general.c quad.c libalan.c typecheck.c
 HFILES   = symbol.h error.h general.h quad.h libalan.h typecheck.h
 GENFILES = lexer.c parser.h parser.c parser.output
@@ -8,11 +8,11 @@ EXEFILES = alan
 SRCFILES = $(HFILES) $(CFILES) parser.y lexer.l
 
 CC=gcc
-CFLAGS=-Wall -ansi -pedantic -g
+CFLAGS=-Wall -ansi -pedantic -g -I ./gc/include
 
 
 all: $(OBJFILES)
-	$(CC) $(CFLAGS) -o $(EXEFILES) $(OBJFILES) -lfl
+	$(CC) $(CFLAGS) -o $(EXEFILES) $(OBJFILES) $(GCLIB) -lfl
 
 lexer.o : lexer.c
 	$(CC) $(CFLAGS) -Wno-implicit-function-declaration -Wno-unused-function -c $<
