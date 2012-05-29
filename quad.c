@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+#include "general.h"
 #include "quad.h"
 #include "error.h"
 #include "typecheck.h"
@@ -24,7 +25,7 @@ void genQuad(oper a, operand b, operand c, operand d)
 {
     quadListNode* newQuad;
 
-    newQuad = malloc(sizeof(quadListNode));
+    newQuad = new(sizeof(quadListNode));
     newQuad->op = a;
     newQuad->operand0 = b;
     newQuad->operand1 = c;
@@ -55,7 +56,7 @@ labelList * makeList(int x)
     quadListNode *temp;
     labelList *p;
 
-    p = malloc(sizeof(labelList));
+    p = new(sizeof(labelList));
     temp = quadFirst;
     while((temp!=NULL)&&(temp->quadLabel!=x))
         temp = temp->next;

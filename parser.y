@@ -2,13 +2,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <gc.h>
 #include "general.h"
 #include "error.h"
 #include "symbol.h"
 #include "quad.h"
 #include "libalan.h"
 #include "typecheck.h"
-
 
 SymbolEntry *fun_decl, *fun_call;
 SymbolEntry *lval;
@@ -459,7 +459,9 @@ void yyerror (const char * msg)
 
 int main ()
 {
+    GC_INIT();      /* Optional on Linux/X86 */
+
     initSymbolTable(257);
 
-return yyparse();
+    return yyparse();
 }
