@@ -1,13 +1,26 @@
 syntax: glob
 
 *.o
+*.lo
+*.la
 *~
 *.swp
+.*
+
 alan
 parser.c
 parser.h
 lexer.c
-lexer
-parser
-quads
 parser.output
+
+gc/inplace
+gc/Makefile
+gc/*.pc
+gc/*.log
+gc/*.status
+gc/libtool
+gc/include/private/config.h
+gc/include/private/stamp-h1
+
+!.hgignore
+!gc/inplace/.empty
