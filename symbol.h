@@ -10,7 +10,7 @@
  *  Date          : May 14, 2003
  *  Description   : Generic symbol table in C
  *
- *  Comments: (in Greek iso-8859-7)
+ *  Comments: (in Greek UTF-8)
  *  ---------
  *  Εθνικό Μετσόβιο Πολυτεχνείο.
  *  Σχολή Ηλεκτρολόγων Μηχανικών και Μηχανικών Υπολογιστών.
