@@ -26,10 +26,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <stdbool.h>
 
 #include "general.h"
 #include "error.h"
-#include <stdbool.h>
 
 
 /* ---------------------------------------------------------------------

@@ -1,29 +1,25 @@
-GCLIB	 = ./gc/lib/libgc.a
 CFILES   = symbol.c error.c general.c quad.c libalan.c typecheck.c
-HFILES   = symbol.h error.h general.h quad.h libalan.h typecheck.h
 GENFILES = lexer.c parser.h parser.c parser.output
+
 OBJFILES = $(patsubst %.c,%.o,$(CFILES)) lexer.o parser.o
 EXEFILES = alan
 
-SRCFILES = $(HFILES) $(CFILES) parser.y lexer.l
-
-CC=gcc
-CFLAGS=-Wall -ansi -pedantic -g -I ./gc/include
+CC     = gcc
+CFLAGS = -Wall -ansi -pedantic -g -I ./gc/inplace/include
+GCLIB  = ./gc/inplace/lib/libgc.a
 
 
 all: $(OBJFILES)
 	$(CC) $(CFLAGS) -o $(EXEFILES) $(OBJFILES) $(GCLIB) -lfl
 
-lexer.o : lexer.c
-	$(CC) $(CFLAGS) -Wno-implicit-function-declaration -Wno-unused-function -c $<
-
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<
 
-lexer.c: lexer.l parser.h
-	flex -s -o $@ $<
+lexer.o : lexer.c
+	$(CC) $(CFLAGS) -Wno-implicit-function-declaration -Wno-unused-function -c $<
 
-parser.h: parser.c
+lexer.c: lexer.l
+	flex -s -o $@ $<
 
 parser.c: parser.y
 	bison -v -d -o $@ $<
@@ -31,12 +27,39 @@ parser.c: parser.y
 clean:
 	$(RM) $(EXEFILES) $(OBJFILES) $(GENFILES) *~
 
-dist:
-	rm -rf compiler-0.1 compiler-0.1.tar.gz
-	mkdir compiler-0.1
-	cp $(SRCFILES) compiler-0.1
-	cp Makefile README.md compiler-0.1
-	tar czf compiler-0.1.tar.gz compiler-0.1
-	rm -r compiler-0.1
-count:
-	wc -l -c Makefile $(SRCFILES)
+distclean: gc_clean clean
+
+##############################
+## Hans Boehm garbage collector
+gc/Makefile:
+	echo "Configuring gc.."
+	cd gc && ./configure --enable-threads=no \
+		--prefix=`pwd`/inplace
+
+gc/inplace/include/gc.h: gc/Makefile
+	echo "Building gc.."
+	$(MAKE) -C gc
+	$(MAKE) -C gc install
+
+gc_clean:
+	echo "Cleaning gc.."
+	@test -e gc/Makefile && $(MAKE) gc_clean_force || echo "Nothing to do here"
+
+gc_clean_force:
+	$(MAKE) -C gc maintainer-clean
+	$(RM) -r gc/inplace/*
+
+##############################
+## Dependences
+symbol.o:    general.h error.h symbol.h
+error.o:     general.h error.h
+general.o:   general.h error.h symbol.h gc.h
+quad.o:      general.h error.h quad.h typecheck.h
+libalan.o:   symbol.h
+typecheck.o: quad.h error.h
+
+gc.h: gc/inplace/include/gc.h
+
+lexer.o:  parser.h
+parser.o: parser.h
+parser.h: parser.c

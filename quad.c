@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
+
 #include "general.h"
 #include "quad.h"
 #include "error.h"
