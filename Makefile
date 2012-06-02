@@ -1,15 +1,21 @@
 CFILES   = symbol.c error.c general.c quad.c libalan.c typecheck.c
 GENFILES = lexer.c parser.h parser.c parser.output
-
 OBJFILES = $(patsubst %.c,%.o,$(CFILES)) lexer.o parser.o
 EXEFILES = alan
 
+TOP         = $(shell pwd)
+GC_SRCPATH  = $(TOP)/gc
+GC_INSTPATH = $(GC_SRCPATH)/inplace
+
 CC     = gcc
-CFLAGS = -Wall -ansi -pedantic -g -I ./gc/inplace/include
-GCLIB  = ./gc/inplace/lib/libgc.a
+CFLAGS = -Wall -ansi -pedantic -g -I $(GC_INSTPATH)/include
+GCLIB  = $(GC_INSTPATH)/lib/libgc.a
 
 
-all: $(OBJFILES)
+.PHONY: all
+all: $(EXEFILES)
+
+$(EXEFILES): $(OBJFILES)
 	$(CC) $(CFLAGS) -o $(EXEFILES) $(OBJFILES) $(GCLIB) -lfl
 
 %.o : %.c
@@ -24,30 +30,38 @@ lexer.c: lexer.l
 parser.c: parser.y
 	bison -v -d -o $@ $<
 
+.PHONY: clean
 clean:
 	$(RM) $(EXEFILES) $(OBJFILES) $(GENFILES) *~
 
+.PHONY: distclean
 distclean: gc_clean clean
 
 ##############################
 ## Hans Boehm garbage collector
-gc/Makefile:
+.INTERMEDIATE: gc.h
+gc.h: $(GC_INSTPATH)/include/gc.h
+
+$(GC_SRCPATH)/Makefile:
 	echo "Configuring gc.."
-	cd gc && ./configure --enable-threads=no \
-		--prefix=`pwd`/inplace
+	cd $(GC_SRCPATH) && \
+		./configure --enable-threads=no --prefix=$(GC_INSTPATH)
 
-gc/inplace/include/gc.h: gc/Makefile
+$(GC_INSTPATH)/include/gc.h: $(GC_SRCPATH)/Makefile
 	echo "Building gc.."
-	$(MAKE) -C gc
-	$(MAKE) -C gc install
+	$(MAKE) -C $(GC_SRCPATH)
+	$(MAKE) -C $(GC_SRCPATH) install
 
+.PHONY: gc_clean
 gc_clean:
 	echo "Cleaning gc.."
-	@test -e gc/Makefile && $(MAKE) gc_clean_force || echo "Nothing to do here"
+	@test -e $(GC_SRCPATH)/Makefile \
+		&& $(MAKE) gc_clean_force || echo "Nothing to do here"
 
+.PHONY: gc_clean_force
 gc_clean_force:
-	$(MAKE) -C gc maintainer-clean
-	$(RM) -r gc/inplace/*
+	$(MAKE) -C $(GC_SRCPATH) maintainer-clean
+	$(RM) -r $(GC_INSTPATH)/*
 
 ##############################
 ## Dependences
@@ -58,8 +72,6 @@ quad.o:      general.h error.h quad.h typecheck.h
 libalan.o:   symbol.h
 typecheck.o: quad.h error.h
 
-gc.h: gc/inplace/include/gc.h
-
 lexer.o:  parser.h
-parser.o: parser.h
+parser.o: parser.h gc.h
 parser.h: parser.c
