@@ -1,4 +1,4 @@
-CFILES   = symbol.c error.c general.c quad.c libalan.c typecheck.c
+CFILES   = symbol.c error.c general.c quad.c libalan.c typecheck.c llvm.c
 GENFILES = lexer.c parser.h parser.c parser.output
 OBJFILES = $(patsubst %.c,%.o,$(CFILES)) lexer.o parser.o
 EXEFILES = alan
@@ -7,16 +7,18 @@ TOP         = $(shell pwd)
 GC_SRCPATH  = $(TOP)/gc
 GC_INSTPATH = $(GC_SRCPATH)/inplace
 
-CC     = gcc
-CFLAGS = -Wall -ansi -pedantic -g -I $(GC_INSTPATH)/include
-GCLIB  = $(GC_INSTPATH)/lib/libgc.a
+CC      = gcc
+CXX     = g++
+CFLAGS  = -Wall $(shell llvm-config --cflags) -I$(GC_INSTPATH)/include
+LDFLAGS = -lfl $(GC_INSTPATH)/lib/libgc.a \
+          $(shell llvm-config --ldflags --libs core)
 
 
 .PHONY: all
 all: $(EXEFILES)
 
 $(EXEFILES): $(OBJFILES)
-	$(CC) $(CFLAGS) -o $(EXEFILES) $(OBJFILES) $(GCLIB) -lfl
+	$(CXX) $(CFLAGS) -o $(EXEFILES) $(OBJFILES) $(LDFLAGS)
 
 %.o : %.c
 	$(CC) $(CFLAGS) -c $<
@@ -71,6 +73,7 @@ general.o:   general.h error.h symbol.h gc.h
 quad.o:      general.h error.h quad.h typecheck.h
 libalan.o:   symbol.h
 typecheck.o: quad.h error.h
+llvm.o:
 
 lexer.o:  parser.h
 parser.o: parser.h gc.h
