@@ -107,6 +107,7 @@ typedef struct SymbolEntry_tag SymbolEntry;
 
 struct SymbolEntry_tag {
    const char   * id;                 /* Ονομα αναγνωριστικού          */
+   unsigned int   unique;             /* Μοναδικό αναγνωριστικό        */
    EntryType      entryType;          /* Τύπος της εγγραφής            */
    unsigned int   nestingLevel;       /* Βάθος φωλιάσματος             */
    unsigned int   hashValue;          /* Τιμή κατακερματισμού          */
@@ -218,6 +219,7 @@ void          forwardFunction    (SymbolEntry * f);
 void          endFunctionHeader  (SymbolEntry * f, Type type);
 void          destroyEntry       (SymbolEntry * e);
 void          destroyLocalEntry  (SymbolEntry * e);
+char        * getEntryName       (SymbolEntry * e);
 SymbolEntry * lookupEntry        (const char * name, LookupType type,
                                   bool err);
 

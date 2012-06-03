@@ -298,7 +298,6 @@ void printOp(operand op)
         default:
             printf("Unknown operand");
             break;
-            
         }
     }
 }

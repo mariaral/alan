@@ -39,6 +39,7 @@
 Scope        * currentScope;           /* Τρέχουσα εμβέλεια              */
 unsigned int   quadNext;               /* Αριθμός επόμενης τετράδας      */
 unsigned int   tempNumber;             /* Αρίθμηση των temporaries       */
+unsigned int   unique;                 /* Αρίθμηση των Entries           */
 
 static unsigned int   hashTableSize;   /* Μέγεθος πίνακα κατακερματισμού */
 static SymbolEntry ** hashTable;       /* Πίνακας κατακερματισμού        */
@@ -145,6 +146,7 @@ void initSymbolTable (unsigned int size)
     currentScope = NULL;
     quadNext     = 1;
     tempNumber   = 1;
+    unique       = 1;
     
     /* Αρχικοποίηση του πίνακα κατακερματισμού */
     
@@ -227,6 +229,7 @@ static SymbolEntry * newEntry (const char * name)
     e->id = (const char *) new(strlen(name) + 1);
 
     strcpy((char *) (e->id), name);
+    e->unique       = unique++;
     e->hashValue    = PJW_hash(name) % hashTableSize;
     e->nestingLevel = currentScope->nestingLevel;
     insertEntry(e);
@@ -701,9 +704,9 @@ void printMode (PassMode mode)
         printf("var ");
 }
 
-/*****************************************************************************/
-/***** Add my destroy entry that destrroys an entry from current scope *******/ 
-/***** without destroying the current scope **********************************/
+/* ---------------------------------------------------------------------
+   ----- Add my destroy entry that destroys an entry from current ------
+   ------------ scope without destroying the current scope ------------ */
 
 void destroyLocalEntry(SymbolEntry * e)
 {
@@ -727,5 +730,16 @@ void destroyLocalEntry(SymbolEntry * e)
     destroyEntry(e);
 }
 
+/* ---------------------------------------------------------------------
+   ---------------- For the given entry return it's id -----------------
+   ----------------- with it's unique number as suffix ----------------- */
 
-        
+char * getEntryName(SymbolEntry * e)
+{
+    char *name;
+
+    name = (char *) new(strlen(e->id)+32);
+    sprintf(name, "%s_%d", e->id, e->unique);
+
+    return name;
+}
