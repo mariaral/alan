@@ -3,9 +3,10 @@ syntax: glob
 *.o
 *.lo
 *.la
+*.log
+*.status
 *~
 *.swp
-.*
 
 alan
 parser.c
@@ -13,14 +14,11 @@ parser.h
 lexer.c
 parser.output
 
-gc/inplace
+gc/inplace/*/*
 gc/Makefile
 gc/*.pc
-gc/*.log
-gc/*.status
-gc/libtool
+gc/libtool/
 gc/include/private/config.h
 gc/include/private/stamp-h1
-
-!.hgignore
-!gc/inplace/.empty
+gc/.deps/
+gc/.libs/
