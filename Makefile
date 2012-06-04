@@ -11,7 +11,7 @@ CC      = gcc
 CXX     = g++
 CFLAGS  = -Wall $(shell llvm-config --cflags) -I$(GC_INSTPATH)/include
 LDFLAGS = -lfl $(GC_INSTPATH)/lib/libgc.a \
-          $(shell llvm-config --ldflags --libs core)
+          $(shell llvm-config --ldflags --libs Core BitWriter)
 
 
 .PHONY: all
@@ -73,8 +73,8 @@ general.o:   general.h error.h symbol.h gc.h
 quad.o:      general.h error.h quad.h typecheck.h
 libalan.o:   symbol.h
 typecheck.o: quad.h error.h
-llvm.o:
+llvm.o:		 llvm.h
 
-lexer.o:  parser.h
-parser.o: parser.h gc.h
+lexer.o:  symbol.h quad.h parser.h
+parser.o: general.h error.h symbol.h quad.h libalan.h typecheck.h llvm.h gc.h
 parser.h: parser.c
