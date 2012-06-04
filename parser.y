@@ -92,7 +92,8 @@ func_def    :   T_id    { fun_decl = lookupEntry($1,LOOKUP_CURRENT_SCOPE,false);
                           openScope(); }
 
                 T_oppar fpar_list T_clpar T_dd r_type
-                { endFunctionHeader(fun_decl,$7); }
+                { endFunctionHeader(fun_decl,$7);
+                  llvm_createFunction(fun_decl); }
 
                 local_def0  { ret_at_end=false; 
                               ret_exists=false;  

@@ -5,5 +5,3 @@ c : int;
 	if (1==2) c=1;
 	(* writeString("Hello world!\n"); *)
 }
-
-
