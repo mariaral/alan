@@ -1,7 +1,10 @@
 hello () : proc
 c : int;
+  foo1() : proc
+    foo2() : proc
+    {}
+  {}
 {
-
 	if (1==2) c=1;
 	(* writeString("Hello world!\n"); *)
 }

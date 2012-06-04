@@ -28,6 +28,7 @@
    --------------------------------------------------------------------- */
 
 #include <stdbool.h>
+#include <llvm-c/Core.h>
 
 /*
  *  Αν το παραπάνω include δεν υποστηρίζεται από την υλοποίηση
@@ -119,6 +120,7 @@ struct SymbolEntry_tag {
       struct {                                /******* Μεταβλητή *******/
          Type          type;                  /* Τύπος                 */
          int           offset;                /* Offset στο Ε.Δ.       */
+         LLVMValueRef  value;                 /* Llvm τιμή             */
       } eVariable;
 
       struct {                                /******** Σταθερά ********/
@@ -143,6 +145,7 @@ struct SymbolEntry_tag {
              PARDEF_CHECK                        /* Εν μέσω ελέγχου    */
          } pardef;
          int           firstQuad;             /* Αρχική τετράδα        */
+         LLVMValueRef  value;                 /* Llvm τιμή             */
       } eFunction;
 
       struct {                                /****** Παράμετρος *******/
@@ -150,12 +153,14 @@ struct SymbolEntry_tag {
          int           offset;                /* Offset στο Ε.Δ.       */
          PassMode      mode;                  /* Τρόπος περάσματος     */
          SymbolEntry * next;                  /* Επόμενη παράμετρος    */
+         LLVMValueRef  value;                 /* Llvm τιμή             */
       } eParameter;
 
       struct {                                /** Προσωρινή μεταβλητή **/
          Type          type;                  /* Τύπος                 */
          int           offset;                /* Offset στο Ε.Δ.       */
          int           number;
+         LLVMValueRef  value;                 /* Llvm τιμή             */
       } eTemporary;
 
    } u;                               /* Τέλος του union               */

@@ -46,6 +46,7 @@ void llvm_createFunction(SymbolEntry *funEntry)
     LLVMTypeRef *fac_args;
     LLVMTypeRef resultType;
     LLVMTypeRef funcType;
+    LLVMBasicBlockRef entry;
 
     if(funEntry->entryType != ENTRY_FUNCTION)
         internal("llvm_createFunction called without a function entry\n");
@@ -64,6 +65,15 @@ void llvm_createFunction(SymbolEntry *funEntry)
     funcType = LLVMFunctionType(resultType, fac_args, numOfArgs, 0);
     func = LLVMAddFunction(mod, funName, funcType);
     LLVMSetLinkage(func, LLVMInternalLinkage);
+
+    funEntry->u.eFunction.value = func;
+    argEntry = funEntry->u.eFunction.firstArgument;
+    for(i=0; i<numOfArgs; i++) {
+        argEntry->u.eParameter.value = LLVMGetParam(func, i);
+        argEntry = argEntry->u.eParameter.next;
+    }
+    entry = LLVMAppendBasicBlock(func, "entry");
+    LLVMPositionBuilderAtEnd(builder, entry);
 }
 
 int getNumberOfArgs(SymbolEntry *firstArgument)
