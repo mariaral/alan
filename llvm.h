@@ -10,5 +10,6 @@ void llvm_printModule(char *filename);
 
 /* Operate on functions */
 void llvm_createFunction(SymbolEntry *funEntry);
+void llvm_setBuilder(SymbolEntry *funEntry);
 
 #endif

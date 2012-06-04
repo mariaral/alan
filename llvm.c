@@ -46,7 +46,6 @@ void llvm_createFunction(SymbolEntry *funEntry)
     LLVMTypeRef *fac_args;
     LLVMTypeRef resultType;
     LLVMTypeRef funcType;
-    LLVMBasicBlockRef entry;
 
     if(funEntry->entryType != ENTRY_FUNCTION)
         internal("llvm_createFunction called without a function entry\n");
@@ -72,6 +71,16 @@ void llvm_createFunction(SymbolEntry *funEntry)
         argEntry->u.eParameter.value = LLVMGetParam(func, i);
         argEntry = argEntry->u.eParameter.next;
     }
+}
+
+void llvm_setBuilder(SymbolEntry *funEntry)
+{
+    LLVMBasicBlockRef entry;
+
+    if(funEntry->entryType != ENTRY_FUNCTION)
+        internal("llvm_setBuilder called without a function entry\n");
+
+    func = funEntry->u.eFunction.value;
     entry = LLVMAppendBasicBlock(func, "entry");
     LLVMPositionBuilderAtEnd(builder, entry);
 }
