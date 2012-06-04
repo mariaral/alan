@@ -98,7 +98,8 @@ func_def    :   T_id    { fun_decl = lookupEntry($1,LOOKUP_CURRENT_SCOPE,false);
                 local_def0  { ret_at_end=false; 
                               ret_exists=false;  
                               quadLast = NULL;
-                              genQuad(UNIT,op(OP_NAME,$1),op(OP_NOTHING),op(OP_NOTHING)); }
+                              genQuad(UNIT,op(OP_NAME,$1),op(OP_NOTHING),op(OP_NOTHING));
+                              llvm_setBuilder(currentScope->parent->entries); }
 
                 compound_stmt   { currrentFunction = currentScope->parent->entries;
                                   if((!ret_exists)&&(!equalType(currrentFunction->u.eFunction.resultType,typeVoid))) 
