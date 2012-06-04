@@ -73,8 +73,10 @@ general.o:   general.h error.h symbol.h gc.h
 quad.o:      general.h error.h quad.h typecheck.h
 libalan.o:   symbol.h
 typecheck.o: quad.h error.h
-llvm.o:		 llvm.h
+llvm.o:		 llvm.h symbol.h error.h general.h
 
 lexer.o:  symbol.h quad.h parser.h
 parser.o: general.h error.h symbol.h quad.h libalan.h typecheck.h llvm.h gc.h
 parser.h: parser.c
+
+symbol.h: llvm.h
