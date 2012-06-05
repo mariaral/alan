@@ -397,7 +397,7 @@ SymbolEntry * newParameter (const char * name, Type type,
             }
             if (f->u.eFunction.lastArgument == NULL) {
                 f->u.eFunction.firstArgument = f->u.eFunction.lastArgument = e;
-                f->u.eFunction.numOfArgs = 0;
+                f->u.eFunction.numOfArgs = 1;
             } else {
                 f->u.eFunction.lastArgument->u.eParameter.next = e;
                 f->u.eFunction.lastArgument = e;
