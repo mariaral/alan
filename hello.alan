@@ -1,7 +1,7 @@
 hello () : proc
 c : int;
-  foo1() : proc
-    foo2() : proc
+  foo1(x:int, y:reference int) : proc
+    foo2(s:reference byte[]) : proc
     {}
   {}
 {
