@@ -395,11 +395,13 @@ SymbolEntry * newParameter (const char * name, Type type,
                 e->u.eParameter.mode = mode;
                 e->u.eParameter.next = NULL;
             }
-            if (f->u.eFunction.lastArgument == NULL)
+            if (f->u.eFunction.lastArgument == NULL) {
                 f->u.eFunction.firstArgument = f->u.eFunction.lastArgument = e;
-            else {
+                f->u.eFunction.numOfArgs = 0;
+            } else {
                 f->u.eFunction.lastArgument->u.eParameter.next = e;
                 f->u.eFunction.lastArgument = e;
+                f->u.eFunction.numOfArgs++;
             }
             return e;            
         case PARDEF_CHECK:
