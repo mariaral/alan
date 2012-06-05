@@ -145,6 +145,7 @@ struct SymbolEntry_tag {
              PARDEF_CHECK                        /* Εν μέσω ελέγχου    */
          } pardef;
          int           firstQuad;             /* Αρχική τετράδα        */
+         int           numOfArgs;             /* Αριθμός παραμέτρων    */
          LLVMValueRef  value;                 /* Llvm τιμή             */
       } eFunction;
 
