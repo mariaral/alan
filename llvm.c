@@ -71,10 +71,12 @@ void llvm_createFunction(SymbolEntry *funEntry)
     argEntry = funEntry->u.eFunction.firstArgument;
     for(i=0; i<numOfArgs; i++) {
         argName = getEntryName(argEntry);
-        argValue = LLVMAddGlobal(mod, fac_args[i], argName);
-        LLVMSetInitializer(argValue, LLVMConstNull(fac_args[i]));
-        LLVMSetLinkage(argValue, LLVMInternalLinkage);
-        argEntry->u.eParameter.value = argValue;
+        if(argEntry->u.eParameter.mode == PASS_BY_VALUE) {
+            argValue = LLVMAddGlobal(mod, fac_args[i], argName);
+            LLVMSetInitializer(argValue, LLVMConstNull(fac_args[i]));
+            LLVMSetLinkage(argValue, LLVMInternalLinkage);
+            argEntry->u.eParameter.value = argValue;
+        }
         argEntry = argEntry->u.eParameter.next;
     }
 }
@@ -101,6 +103,22 @@ void llvm_startFunction(SymbolEntry *funEntry)
         LLVMBuildStore(builder, argValue, argEntry->u.eParameter.value);
         argEntry = argEntry->u.eParameter.next;
     }
+}
+
+
+/* Operate on variables */
+void llvm_createVariable(SymbolEntry *varEntry)
+{
+    char *name;
+    LLVMValueRef varValue;
+    LLVMTypeRef varType;
+
+    varType = convertToLlvmType(varEntry->u.eVariable.type, false);
+    name = getEntryName(varEntry);
+    varValue = LLVMAddGlobal(mod, varType, name);
+    LLVMSetInitializer(varValue, LLVMConstNull(varType));
+    LLVMSetLinkage(varValue, LLVMInternalLinkage);
+    varEntry->u.eVariable.value = varValue;
 }
 
 
@@ -132,6 +150,9 @@ LLVMTypeRef convertToLlvmType(Type type, bool byRef)
         internal("Alan does not support TYPE_REAL\n");
         break;
     case TYPE_ARRAY:
+        temp = convertToLlvmType(type->refType, false);
+        return LLVMArrayType(temp, type->size);
+        break;
     case TYPE_IARRAY:
     case TYPE_POINTER:
         temp = convertToLlvmType(type->refType, false);

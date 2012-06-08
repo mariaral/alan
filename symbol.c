@@ -363,6 +363,7 @@ SymbolEntry * newFunction (const char * name)
             e->u.eFunction.pardef = PARDEF_DEFINE;
             e->u.eFunction.firstArgument = e->u.eFunction.lastArgument = NULL;
             e->u.eFunction.resultType = NULL;
+            e->u.eFunction.numOfArgs = 0;
         }
         return e;
     }
@@ -394,14 +395,13 @@ SymbolEntry * newParameter (const char * name, Type type,
                 type->refCount++;
                 e->u.eParameter.mode = mode;
                 e->u.eParameter.next = NULL;
+                f->u.eFunction.numOfArgs++;
             }
             if (f->u.eFunction.lastArgument == NULL) {
                 f->u.eFunction.firstArgument = f->u.eFunction.lastArgument = e;
-                f->u.eFunction.numOfArgs = 1;
             } else {
                 f->u.eFunction.lastArgument->u.eParameter.next = e;
                 f->u.eFunction.lastArgument = e;
-                f->u.eFunction.numOfArgs++;
             }
             return e;            
         case PARDEF_CHECK:
