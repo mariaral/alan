@@ -22,3 +22,11 @@ gc/include/private/config.h
 gc/include/private/stamp-h1
 gc/.deps/
 gc/.libs/
+gc/libatomic_ops/Makefile
+gc/libatomic_ops/doc/Makefile
+gc/libatomic_ops/pkgconfig/atomic_ops-uninstalled.pc
+gc/libatomic_ops/pkgconfig/atomic_ops.pc
+gc/libatomic_ops/src/Makefile
+gc/libatomic_ops/src/atomic_ops/Makefile
+gc/libatomic_ops/src/atomic_ops/sysdeps/Makefile
+gc/libatomic_ops/tests/Makefile

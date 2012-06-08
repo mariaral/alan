@@ -15,6 +15,7 @@ SymbolEntry *fun_decl, *fun_call;
 SymbolEntry *lval;
 SymbolEntry *currentArg, *arg;
 SymbolEntry *currrentFunction;
+extern Scope *currentScope;
 Place temp;
 labelList *L;
 Type retType;

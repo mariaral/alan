@@ -9,6 +9,8 @@
 #include "general.h"
 
 
+extern Scope *currentScope;
+
 LLVMModuleRef mod;
 LLVMBuilderRef builder;
 LLVMValueRef func;
@@ -83,6 +85,7 @@ void llvm_createFunction(SymbolEntry *funEntry)
 
 void llvm_startFunction(SymbolEntry *funEntry)
 {
+    /*
     int numOfArgs, i;
     SymbolEntry *argEntry;
     LLVMValueRef argValue;
@@ -103,12 +106,14 @@ void llvm_startFunction(SymbolEntry *funEntry)
         LLVMBuildStore(builder, argValue, argEntry->u.eParameter.value);
         argEntry = argEntry->u.eParameter.next;
     }
+    */
 }
 
 
 /* Operate on variables */
 void llvm_createVariable(SymbolEntry *varEntry)
 {
+    /*
     char *name;
     LLVMValueRef varValue;
     LLVMTypeRef varType;
@@ -119,6 +124,7 @@ void llvm_createVariable(SymbolEntry *varEntry)
     LLVMSetInitializer(varValue, LLVMConstNull(varType));
     LLVMSetLinkage(varValue, LLVMInternalLinkage);
     varEntry->u.eVariable.value = varValue;
+    */
 }
 
 
