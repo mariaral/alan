@@ -155,8 +155,10 @@ local_def   :   func_def
             |   var_def
             ;
 
-var_def     :   T_id T_dd data_type T_semic { newVariable($1, $3); }
-            |   T_id T_dd data_type T_opj T_constnum T_clj T_semic { newVariable($1,typeArray($5,$3)); }
+var_def     :   T_id T_dd data_type T_semic
+                        { llvm_createVariable( newVariable($1, $3) ); }
+            |   T_id T_dd data_type T_opj T_constnum T_clj T_semic
+                        { llvm_createVariable( newVariable($1,typeArray($5,$3)) ); }
             ;
 
 stmt        :   T_semic { ret_at_end = false; $$ = emptyList(); }

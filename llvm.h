@@ -12,4 +12,7 @@ void llvm_printModule(char *filename);
 void llvm_createFunction(SymbolEntry *funEntry);
 void llvm_startFunction(SymbolEntry *funEntry);
 
+/* Operate on variables */
+void llvm_createVariable(SymbolEntry *varEntry);
+
 #endif
