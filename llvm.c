@@ -42,34 +42,96 @@ void llvm_printModule(char *filename)
 void llvm_createFunction(SymbolEntry *funEntry)
 {
     int i;
-    char *funName, *argName;
+    char *funName;
     int numOfArgs;
-    SymbolEntry *argEntry;
+    SymbolEntry *parentFun, *tempEntry;
+    EntriesArray *lifted, *tempArray;
     LLVMTypeRef *fac_args;
     LLVMTypeRef resultType;
     LLVMTypeRef funcType;
-    LLVMValueRef argValue;
 
     if(funEntry->entryType != ENTRY_FUNCTION)
         internal("llvm_createFunction called without a function entry\n");
 
-    funName =  getEntryName(funEntry);
-    argEntry = funEntry->u.eFunction.firstArgument;
-    numOfArgs = funEntry->u.eFunction.numOfArgs;
-    fac_args = (LLVMTypeRef *) new(numOfArgs * sizeof(LLVMTypeRef));
-    for(i=0; i<numOfArgs; i++) {
-        fac_args[i] = convertToLlvmType(argEntry->u.eParameter.type,
-                                        argEntry->u.eParameter.mode==PASS_BY_REFERENCE);
-        argEntry = argEntry->u.eParameter.next;
+    /* First found out all the lifted parameters */
+    funEntry->u.eFunction.liftedArguments = NULL;
+    funEntry->u.eFunction.numOfLifted = 0;
+    if(currentScope->nestingLevel > 2) {
+        parentFun = currentScope->parent->parent->entries;
+        if(parentFun->entryType != ENTRY_FUNCTION)
+            internal("parent entry was supposed to be a function\n");
+        /* Take the arguments of my parent */
+        tempEntry = parentFun->u.eFunction.firstArgument;
+        while(tempEntry != NULL) {
+            lifted = (EntriesArray *) new(sizeof(EntriesArray));
+            lifted->next = funEntry->u.eFunction.liftedArguments;
+            lifted->entry = tempEntry;
+            funEntry->u.eFunction.liftedArguments = lifted;
+            funEntry->u.eFunction.numOfLifted++;
+            tempEntry = tempEntry->u.eParameter.next;
+        }
+        /* Take the lifted arguments of my parent */
+        tempArray = parentFun->u.eFunction.liftedArguments;
+        while(tempArray != NULL) {
+            lifted = (EntriesArray *) new(sizeof(EntriesArray));
+            lifted->next = funEntry->u.eFunction.liftedArguments;
+            lifted->entry = tempArray->entry;
+            funEntry->u.eFunction.liftedArguments = lifted;
+            funEntry->u.eFunction.numOfLifted++;
+            tempArray = tempArray->next;
+        }
+        /* And lift all the variables of my parent */
+        tempEntry = currentScope->parent->entries->nextInScope;
+        while(tempEntry != NULL) {
+            if(tempEntry->entryType != ENTRY_VARIABLE) {
+                tempEntry = tempEntry->nextInScope;
+                continue;
+            }
+            lifted = (EntriesArray *) new(sizeof(EntriesArray));
+            lifted->next = funEntry->u.eFunction.liftedArguments;
+            lifted->entry = tempEntry;
+            funEntry->u.eFunction.liftedArguments = lifted;
+            funEntry->u.eFunction.numOfLifted++;
+            tempEntry = tempEntry->nextInScope;
+        }
     }
 
+    /* Get the name of the function */
+    funName =  getEntryName(funEntry);
+    /* Allocate array for function's parameters */
+    numOfArgs = funEntry->u.eFunction.numOfArgs + funEntry->u.eFunction.numOfLifted;
+    fac_args = (LLVMTypeRef *) new(numOfArgs * sizeof(LLVMTypeRef));
+    /* Pass the real arguments first */
+    i = 0;
+    tempEntry = funEntry->u.eFunction.firstArgument;
+    while(tempEntry != NULL) {
+        fac_args[i++] = convertToLlvmType(tempEntry->u.eParameter.type,
+                                tempEntry->u.eParameter.mode==PASS_BY_REFERENCE);
+        tempEntry = tempEntry->u.eParameter.next;
+    }
+    /* Then the lifted parameters */
+    tempArray = funEntry->u.eFunction.liftedArguments;
+    while(tempArray != NULL) {
+        tempEntry = tempArray->entry;
+        switch(tempEntry->entryType) {
+        case ENTRY_VARIABLE:
+            fac_args[i++] = convertToLlvmType(tempEntry->u.eVariable.type, true);
+            break;
+        case ENTRY_PARAMETER:
+            fac_args[i++] = convertToLlvmType(tempEntry->u.eParameter.type, true);
+            break;
+        default:
+            internal("lifted variable has to be ENTRY_VARIABLE of ENTRY_PARAMETER\n");
+        }
+        tempArray = tempArray->next;
+    }
+    /* Get the function type */
     resultType = convertToLlvmType(funEntry->u.eFunction.resultType, false);
     funcType = LLVMFunctionType(resultType, fac_args, numOfArgs, 0);
-    func = LLVMAddFunction(mod, funName, funcType);
-    LLVMSetLinkage(func, LLVMInternalLinkage);
+    funEntry->u.eFunction.value = LLVMAddFunction(mod, funName, funcType);
+    LLVMSetLinkage(funEntry->u.eFunction.value, LLVMInternalLinkage);
 
-    funEntry->u.eFunction.value = func;
-
+    /*
     argEntry = funEntry->u.eFunction.firstArgument;
     for(i=0; i<numOfArgs; i++) {
         argName = getEntryName(argEntry);
@@ -81,6 +143,7 @@ void llvm_createFunction(SymbolEntry *funEntry)
         }
         argEntry = argEntry->u.eParameter.next;
     }
+    */
 }
 
 void llvm_startFunction(SymbolEntry *funEntry)

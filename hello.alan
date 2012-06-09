@@ -1,6 +1,8 @@
 hello () : proc
 c : int;
+x : byte;
   foo1(x:int, y:reference int) : proc
+    z : int;
     foo2(s:reference byte[]) : proc
     {}
   {}
