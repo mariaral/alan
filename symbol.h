@@ -102,6 +102,11 @@ typedef enum {
 } PassMode;
 
 
+/* Ένα array από Symbol Entries */
+
+typedef struct EntriesArray_tag EntriesArray;
+
+
 /* Τύπος εγγραφής στον πίνακα συμβόλων */
 
 typedef struct SymbolEntry_tag SymbolEntry;
@@ -147,6 +152,8 @@ struct SymbolEntry_tag {
          int           firstQuad;             /* Αρχική τετράδα        */
          int           numOfArgs;             /* Αριθμός παραμέτρων    */
          LLVMValueRef  value;                 /* Llvm τιμή             */
+         EntriesArray *liftedArguments;       /* Lifted arguments      */
+         int           numOfLifted;           /* Number of Lifted args */
       } eFunction;
 
       struct {                                /****** Παράμετρος *******/
@@ -187,6 +194,13 @@ typedef enum {
     LOOKUP_ALL_SCOPES
 } LookupType;
 
+
+/* Ένα array από Symbol Entries */
+
+struct EntriesArray_tag {
+    SymbolEntry * entry;
+    EntriesArray * next;
+};
 
 /* ---------------------------------------------------------------------
    ------------- Καθολικές μεταβλητές του πίνακα συμβόλων --------------
