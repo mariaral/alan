@@ -14,7 +14,7 @@
 SymbolEntry *fun_decl, *fun_call;
 SymbolEntry *lval;
 SymbolEntry *currentArg, *arg;
-SymbolEntry *currrentFunction;
+SymbolEntry *currentFunction;
 extern Scope *currentScope;
 Place temp;
 labelList *L;
@@ -102,8 +102,8 @@ func_def    :   T_id    { fun_decl = lookupEntry($1,LOOKUP_CURRENT_SCOPE,false);
                               genQuad(UNIT,op(OP_NAME,$1),op(OP_NOTHING),op(OP_NOTHING));
                               llvm_startFunction(currentScope->parent->entries); }
 
-                compound_stmt   { currrentFunction = currentScope->parent->entries;
-                                  if((!ret_exists)&&(!equalType(currrentFunction->u.eFunction.resultType,typeVoid))) 
+                compound_stmt   { currentFunction = currentScope->parent->entries;
+                                  if((!ret_exists)&&(!equalType(currentFunction->u.eFunction.resultType,typeVoid))) 
                                     error("Non proc functions must return value");
 
 
@@ -114,7 +114,8 @@ func_def    :   T_id    { fun_decl = lookupEntry($1,LOOKUP_CURRENT_SCOPE,false);
                                   genQuad(ENDU,op(OP_NAME,$1),op(OP_NOTHING),op(OP_NOTHING));
                                   if(!global_typeError)
                                     printQuads();
-                                  closeScope(); }
+                                  closeScope();
+                                  llvm_closeFunction(currentFunction); }
             ;
 
 local_def0  :   /*EMPTY*/
@@ -206,16 +207,16 @@ stmt        :   T_semic { ret_at_end = false; $$ = emptyList(); }
                           $$ = $4.False;
                           ret_at_end = false; }
 
-            |   T_return T_semic    { currrentFunction = currentScope->parent->entries;
-                                      if(currrentFunction->u.eFunction.resultType!=typeVoid) 
+            |   T_return T_semic    { currentFunction = currentScope->parent->entries;
+                                      if(currentFunction->u.eFunction.resultType!=typeVoid) 
                                         error("Function returns no value");
                                       genQuad(RET,op(OP_NOTHING),op(OP_NOTHING),op(OP_NOTHING));
                                       ret_at_end = true;
                                       ret_exists = true;
                                       $$ = emptyList(); }
 
-            |   T_return expr T_semic   { currrentFunction = currentScope->parent->entries;
-                                          if(currrentFunction->u.eFunction.resultType!=$2.type) 
+            |   T_return expr T_semic   { currentFunction = currentScope->parent->entries;
+                                          if(currentFunction->u.eFunction.resultType!=$2.type) 
                                           
                                             error("Function must return same type of value as declared");
                                           genQuad(RET,op(OP_NOTHING),op(OP_NOTHING),op(OP_NOTHING));

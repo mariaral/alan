@@ -14,6 +14,7 @@ extern Scope *currentScope;
 LLVMModuleRef mod;
 LLVMBuilderRef builder;
 LLVMValueRef func;
+LLVMBasicBlockRef block;
 
 int getNumberOfArgs(SymbolEntry *firstArgument);
 LLVMTypeRef convertToLlvmType(Type type, bool byRef);
@@ -129,47 +130,80 @@ void llvm_createFunction(SymbolEntry *funEntry)
     resultType = convertToLlvmType(funEntry->u.eFunction.resultType, false);
     funcType = LLVMFunctionType(resultType, fac_args, numOfArgs, 0);
     funEntry->u.eFunction.value = LLVMAddFunction(mod, funName, funcType);
+    funEntry->u.eFunction.type = funcType;
     LLVMSetLinkage(funEntry->u.eFunction.value, LLVMInternalLinkage);
-
-    /*
-    argEntry = funEntry->u.eFunction.firstArgument;
-    for(i=0; i<numOfArgs; i++) {
-        argName = getEntryName(argEntry);
-        if(argEntry->u.eParameter.mode == PASS_BY_VALUE) {
-            argValue = LLVMAddGlobal(mod, fac_args[i], argName);
-            LLVMSetInitializer(argValue, LLVMConstNull(fac_args[i]));
-            LLVMSetLinkage(argValue, LLVMInternalLinkage);
-            argEntry->u.eParameter.value = argValue;
-        }
-        argEntry = argEntry->u.eParameter.next;
-    }
-    */
 }
 
 void llvm_startFunction(SymbolEntry *funEntry)
 {
-    /*
     int numOfArgs, i;
-    SymbolEntry *argEntry;
-    LLVMValueRef argValue;
+    char *argName;
+    SymbolEntry *tempEntry;
+    EntriesArray *tempArray;
+    LLVMValueRef argValue, allocValue;
+    LLVMTypeRef *fac_args;
 
-    LLVMBasicBlockRef entry;
 
     if(funEntry->entryType != ENTRY_FUNCTION)
         internal("llvm_startFunction called without a function entry\n");
 
     func = funEntry->u.eFunction.value;
-    entry = LLVMAppendBasicBlock(func, "entry");
-    LLVMPositionBuilderAtEnd(builder, entry);
+    block = LLVMAppendBasicBlock(func, "entry");
+    LLVMPositionBuilderAtEnd(builder, block);
 
-    numOfArgs = funEntry->u.eFunction.numOfArgs;
-    argEntry = funEntry->u.eFunction.firstArgument;
-    for(i=0; i<numOfArgs; i++) {
+    /* Get the type of the arguments */
+    numOfArgs = funEntry->u.eFunction.numOfArgs + funEntry->u.eFunction.numOfLifted;
+    fac_args = (LLVMTypeRef *) new(numOfArgs * sizeof(LLVMTypeRef));
+    LLVMGetParamTypes(funEntry->u.eFunction.type, fac_args);
+
+    /* Allocate stack memory for arguments */
+    tempEntry = funEntry->u.eFunction.firstArgument;
+    i = 0;
+    while(tempEntry != NULL) {
         argValue = LLVMGetParam(func, i);
-        LLVMBuildStore(builder, argValue, argEntry->u.eParameter.value);
-        argEntry = argEntry->u.eParameter.next;
+        if(tempEntry->u.eParameter.mode == PASS_BY_VALUE) {
+            argName = getEntryName(tempEntry);
+            allocValue = LLVMBuildAlloca(builder, fac_args[i], argName);
+            LLVMBuildStore(builder, argValue, allocValue);
+            tempEntry->u.eParameter.value = allocValue;
+        } else {
+            tempEntry->u.eParameter.value = argValue;
+        }
+        tempEntry = tempEntry->u.eParameter.next;
+        i++;
     }
-    */
+    /* And save lifted arguments as well */
+    tempArray = funEntry->u.eFunction.liftedArguments;
+    while(tempArray != NULL) {
+        argValue = LLVMGetParam(func, i++);
+        tempEntry = tempArray->entry;
+        switch(tempEntry->entryType) {
+        case ENTRY_VARIABLE:
+            tempEntry->u.eVariable.value = argValue;
+            break;
+        case ENTRY_PARAMETER:
+            tempEntry->u.eParameter.value = argValue;
+            break;
+        default:
+            internal("lifted variable has to be ENTRY_VARIABLE of ENTRY_PARAMETER\n");
+        }
+        tempArray = tempArray->next;
+    }
+}
+
+void llvm_closeFunction(SymbolEntry *funEntry)
+{
+    LLVMValueRef instr;
+    LLVMOpcode op;
+    LLVMTypeRef retType;
+
+    instr = LLVMGetLastInstruction(block);
+    if(!instr ||
+      ((op=LLVMGetInstructionOpcode(instr))!=LLVMRet && op!=LLVMBr)) {
+        /* we have to return something */
+        retType = LLVMGetReturnType(funEntry->u.eFunction.type);
+        LLVMBuildRet(builder, LLVMConstNull(retType));
+    }
 }
 
 

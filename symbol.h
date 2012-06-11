@@ -152,6 +152,7 @@ struct SymbolEntry_tag {
          int           firstQuad;             /* Αρχική τετράδα        */
          int           numOfArgs;             /* Αριθμός παραμέτρων    */
          LLVMValueRef  value;                 /* Llvm τιμή             */
+         LLVMTypeRef   type;                  /* Llvm τύπος            */
          EntriesArray *liftedArguments;       /* Lifted arguments      */
          int           numOfLifted;           /* Number of Lifted args */
       } eFunction;
