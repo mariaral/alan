@@ -1,11 +1,11 @@
 hello () : proc
 c : int;
 x : byte;
-  foo1(x:int, y:reference int) : proc
+  foo1(x:int, y:reference int) : int
     z : int;
     foo2(s:reference byte[]) : proc
     {}
-  {}
+  { return 42; }
 {
 	if (1==2) c=1;
 	(* writeString("Hello world!\n"); *)
