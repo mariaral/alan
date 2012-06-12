@@ -1,5 +1,5 @@
 hello () : proc
-c : int;
+c : int[42];
 x : byte;
   foo1(x:int, y:reference int) : int
     z : int;
@@ -7,6 +7,6 @@ x : byte;
     {}
   { return 42; }
 {
-	if (1==2) c=1;
+	if (1==2) c[2]=1;
 	(* writeString("Hello world!\n"); *)
 }
