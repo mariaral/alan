@@ -132,6 +132,8 @@ void llvm_createFunction(SymbolEntry *funEntry)
     funEntry->u.eFunction.value = LLVMAddFunction(mod, funName, funcType);
     funEntry->u.eFunction.type = funcType;
     LLVMSetLinkage(funEntry->u.eFunction.value, LLVMInternalLinkage);
+    /* And create the entry basic block */
+    LLVMAppendBasicBlock(funEntry->u.eFunction.value, "entry");
 }
 
 void llvm_startFunction(SymbolEntry *funEntry)
@@ -148,7 +150,7 @@ void llvm_startFunction(SymbolEntry *funEntry)
         internal("llvm_startFunction called without a function entry\n");
 
     func = funEntry->u.eFunction.value;
-    block = LLVMAppendBasicBlock(func, "entry");
+    block = LLVMGetFirstBasicBlock(func);
     LLVMPositionBuilderAtEnd(builder, block);
 
     /* Get the type of the arguments */
@@ -210,18 +212,42 @@ void llvm_closeFunction(SymbolEntry *funEntry)
 /* Operate on variables */
 void llvm_createVariable(SymbolEntry *varEntry)
 {
-    /*
     char *name;
+    SymbolEntry *funEntry;
     LLVMValueRef varValue;
-    LLVMTypeRef varType;
+    LLVMTypeRef varType, elemType;
+    unsigned arrayLen;
+    LLVMValueRef vArrayLen;
 
-    varType = convertToLlvmType(varEntry->u.eVariable.type, false);
+    if(varEntry->entryType != ENTRY_VARIABLE)
+        internal("in llvm_createVariable: varEntry is not an ENTRY_VARIABLE\n");
     name = getEntryName(varEntry);
-    varValue = LLVMAddGlobal(mod, varType, name);
-    LLVMSetInitializer(varValue, LLVMConstNull(varType));
-    LLVMSetLinkage(varValue, LLVMInternalLinkage);
+    varType = convertToLlvmType(varEntry->u.eVariable.type, false);
+
+    /* Get the basic block of our function */
+    funEntry = currentScope->parent->entries;
+    if(funEntry->entryType != ENTRY_FUNCTION)
+        internal("in llvm_createVariable: parent entry supposed to be function\n");
+    block = LLVMGetFirstBasicBlock(funEntry->u.eFunction.value);
+    LLVMPositionBuilderAtEnd(builder, block);
+
+    /* And allocate stack memory for our variable */
+    switch(LLVMGetTypeKind(varType)) {
+    case LLVMIntegerTypeKind:
+        varValue = LLVMBuildAlloca(builder, varType, name);
+        break;
+    case LLVMArrayTypeKind:
+        elemType = LLVMGetElementType(varType);
+        arrayLen = LLVMGetArrayLength(varType);
+        vArrayLen = LLVMConstInt(LLVMInt32Type(), arrayLen, 0);
+        varValue = LLVMBuildArrayAlloca(builder, elemType, vArrayLen, name);
+        break;
+    default:
+        internal("in llvm_createVariable: not a valid variable type\n");
+        varValue = LLVMConstNull(LLVMInt32Type()); /* to suppress warnings */
+    }
+
     varEntry->u.eVariable.value = varValue;
-    */
 }
 
 
