@@ -126,7 +126,7 @@ struct SymbolEntry_tag {
          Type          type;                  /* Τύπος                 */
          int           offset;                /* Offset στο Ε.Δ.       */
          LLVMValueRef  value;                 /* Llvm τιμή             */
-         LLVMValueRef  lifted_value;          /* Llvm lifted parameter */
+         LLVMValueRef  temp_value;
       } eVariable;
 
       struct {                                /******** Σταθερά ********/
@@ -164,7 +164,6 @@ struct SymbolEntry_tag {
          PassMode      mode;                  /* Τρόπος περάσματος     */
          SymbolEntry * next;                  /* Επόμενη παράμετρος    */
          LLVMValueRef  value;                 /* Llvm τιμή             */
-         LLVMValueRef  lifted_value;          /* Llvm lifted parameter */
       } eParameter;
 
       struct {                                /** Προσωρινή μεταβλητή **/

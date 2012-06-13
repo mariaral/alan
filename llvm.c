@@ -181,15 +181,23 @@ void llvm_startFunction(SymbolEntry *funEntry)
         tempEntry = tempArray->entry;
         switch(tempEntry->entryType) {
         case ENTRY_VARIABLE:
-            tempEntry->u.eVariable.lifted_value = argValue;
+            tempEntry->u.eVariable.value = argValue;
             break;
         case ENTRY_PARAMETER:
-            tempEntry->u.eParameter.lifted_value = argValue;
+            tempEntry->u.eParameter.value = argValue;
             break;
         default:
             internal("lifted variable has to be ENTRY_VARIABLE of ENTRY_PARAMETER\n");
         }
         tempArray = tempArray->next;
+    }
+
+    /* Now restore my local variables */
+    tempEntry = funEntry->nextInScope;
+    while(tempEntry != NULL) {
+        if(tempEntry->entryType == ENTRY_VARIABLE)
+            tempEntry->u.eVariable.value = tempEntry->u.eVariable.temp_value;
+        tempEntry = tempEntry->nextInScope;
     }
 }
 
@@ -247,7 +255,7 @@ void llvm_createVariable(SymbolEntry *varEntry)
         varValue = LLVMConstNull(LLVMInt32Type()); /* to suppress warnings */
     }
 
-    varEntry->u.eVariable.value = varValue;
+    varEntry->u.eVariable.temp_value = varValue;
 }
 
 void llvm_arrayValue(SymbolEntry *varEntry,
@@ -258,16 +266,10 @@ void llvm_arrayValue(SymbolEntry *varEntry,
     /* The array variable */
     switch(varEntry->entryType) {
     case ENTRY_VARIABLE:
-        if(varEntry->nestingLevel != currentScope->nestingLevel)
-            varValue = varEntry->u.eVariable.lifted_value;
-        else
-            varValue = varEntry->u.eVariable.value;
+        varValue = varEntry->u.eVariable.value;
         break;
     case ENTRY_PARAMETER:
-        if(varEntry->nestingLevel != currentScope->nestingLevel)
-            varValue = varEntry->u.eParameter.lifted_value;
-        else
-            varValue = varEntry->u.eParameter.value;
+        varValue = varEntry->u.eParameter.value;
         break;
     default:
         internal("in llvm_arrayVariable: unsupported entryType for varEntry\n");
@@ -281,19 +283,13 @@ void llvm_arrayValue(SymbolEntry *varEntry,
     /* The offset value */
     switch(offsetEntry->entryType) {
     case ENTRY_VARIABLE:
-        if(offsetEntry->nestingLevel != currentScope->nestingLevel)
-            offsetValue[0] = LLVMBuildLoad(builder, offsetEntry->u.eVariable.lifted_value, "");
-        else
-            offsetValue[0] = LLVMBuildLoad(builder, offsetEntry->u.eVariable.value, "");
+        offsetValue[0] = LLVMBuildLoad(builder, offsetEntry->u.eVariable.value, "");
         break;
     case ENTRY_CONSTANT:
         offsetValue[0] = LLVMConstInt(LLVMInt32Type(), offsetEntry->u.eConstant.value.vInteger, 0);
         break;
     case ENTRY_PARAMETER:
-        if(offsetEntry->nestingLevel != currentScope->nestingLevel)
-            offsetValue[0] = LLVMBuildLoad(builder, offsetEntry->u.eParameter.lifted_value, "");
-        else
-            offsetValue[0] = LLVMBuildLoad(builder, offsetEntry->u.eParameter.value, "");
+        offsetValue[0] = LLVMBuildLoad(builder, offsetEntry->u.eParameter.value, "");
         break;
     case ENTRY_TEMPORARY:
         offsetValue[0] = offsetEntry->u.eTemporary.value;
