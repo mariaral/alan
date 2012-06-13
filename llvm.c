@@ -181,10 +181,10 @@ void llvm_startFunction(SymbolEntry *funEntry)
         tempEntry = tempArray->entry;
         switch(tempEntry->entryType) {
         case ENTRY_VARIABLE:
-            tempEntry->u.eVariable.value = argValue;
+            tempEntry->u.eVariable.lifted_value = argValue;
             break;
         case ENTRY_PARAMETER:
-            tempEntry->u.eParameter.value = argValue;
+            tempEntry->u.eParameter.lifted_value = argValue;
             break;
         default:
             internal("lifted variable has to be ENTRY_VARIABLE of ENTRY_PARAMETER\n");
@@ -250,6 +250,72 @@ void llvm_createVariable(SymbolEntry *varEntry)
     varEntry->u.eVariable.value = varValue;
 }
 
+void llvm_arrayValue(SymbolEntry *varEntry,
+        SymbolEntry *ptrEntry, SymbolEntry *offsetEntry)
+{
+    LLVMValueRef varValue, ptrValue, offsetValue[1];
+
+    /* The array variable */
+    switch(varEntry->entryType) {
+    case ENTRY_VARIABLE:
+        if(varEntry->nestingLevel != currentScope->nestingLevel)
+            varValue = varEntry->u.eVariable.lifted_value;
+        else
+            varValue = varEntry->u.eVariable.value;
+        break;
+    case ENTRY_PARAMETER:
+        if(varEntry->nestingLevel != currentScope->nestingLevel)
+            varValue = varEntry->u.eParameter.lifted_value;
+        else
+            varValue = varEntry->u.eParameter.value;
+        break;
+    default:
+        internal("in llvm_arrayVariable: unsupported entryType for varEntry\n");
+        varValue = LLVMConstNull(LLVMInt32Type()); /* to suppress warnings */
+    }
+
+    /* The temporary variable that will be a pointer */
+    if(ptrEntry->entryType != ENTRY_TEMPORARY)
+        internal("in llvm_createVariable: ptrEntry is not an ENTRY_TEMPORARY\n");
+
+    /* The offset value */
+    switch(offsetEntry->entryType) {
+    case ENTRY_VARIABLE:
+        if(offsetEntry->nestingLevel != currentScope->nestingLevel)
+            offsetValue[0] = LLVMBuildLoad(builder, offsetEntry->u.eVariable.lifted_value, "");
+        else
+            offsetValue[0] = LLVMBuildLoad(builder, offsetEntry->u.eVariable.value, "");
+        break;
+    case ENTRY_CONSTANT:
+        offsetValue[0] = LLVMConstInt(LLVMInt32Type(), offsetEntry->u.eConstant.value.vInteger, 0);
+        break;
+    case ENTRY_PARAMETER:
+        if(offsetEntry->nestingLevel != currentScope->nestingLevel)
+            offsetValue[0] = LLVMBuildLoad(builder, offsetEntry->u.eParameter.lifted_value, "");
+        else
+            offsetValue[0] = LLVMBuildLoad(builder, offsetEntry->u.eParameter.value, "");
+        break;
+    case ENTRY_TEMPORARY:
+        offsetValue[0] = offsetEntry->u.eTemporary.value;
+        if(LLVMGetTypeKind(LLVMTypeOf(offsetValue[0])) == LLVMPointerTypeKind)
+            offsetValue[0] = LLVMBuildLoad(builder, offsetValue[0], "");
+        break;
+    default:
+        internal("in llvm_arrayVariable: unsupported entryType for offsetEntry\n");
+        offsetValue[0] = LLVMConstNull(LLVMInt32Type()); /* to suppress warnings */
+    }
+
+    ptrValue = LLVMBuildGEP(builder, varValue, offsetValue, 1, "");
+    /* Save value as ptr */
+    ptrEntry->u.eTemporary.value = ptrValue;
+}
+
+
+/* Operate on statements */
+void llvm_stmtAssign(SymbolEntry *lvalEntry, SymbolEntry *rvalEntry)
+{
+}
+
 
 /* Operate on Types */
 LLVMTypeRef convertToLlvmType(Type type, bool byRef)
@@ -280,7 +346,10 @@ LLVMTypeRef convertToLlvmType(Type type, bool byRef)
         break;
     case TYPE_ARRAY:
         temp = convertToLlvmType(type->refType, false);
-        return LLVMArrayType(temp, type->size);
+        if(byRef)
+            return LLVMPointerType(temp, 0);
+        else
+            return LLVMArrayType(temp, type->size);
         break;
     case TYPE_IARRAY:
     case TYPE_POINTER:
