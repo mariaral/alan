@@ -4,9 +4,9 @@ x : byte;
   foo1(x:int, y:reference int) : int
     z : int;
     foo2(s:reference byte[]) : proc
-    {}
+    { c[3] = 42; }
   { return 42; }
 {
-	if (1==2) c[2]=1;
+	if (1==2) c[c[2]]=1;
 	(* writeString("Hello world!\n"); *)
 }

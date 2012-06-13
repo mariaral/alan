@@ -15,5 +15,10 @@ void llvm_closeFunction(SymbolEntry *funEntry);
 
 /* Operate on variables */
 void llvm_createVariable(SymbolEntry *varEntry);
+void llvm_arrayValue(SymbolEntry *varEntry,
+        SymbolEntry *ptrEntry, SymbolEntry *offsetEntry);
+
+/* Operate on statements */
+void llvm_stmtAssign(SymbolEntry *lvalEntry, SymbolEntry *rvalEntry);
 
 #endif

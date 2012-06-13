@@ -9,7 +9,7 @@ GC_INSTPATH = $(GC_SRCPATH)/inplace
 
 CC      = gcc
 CXX     = g++
-CFLAGS  = -Wall $(shell llvm-config --cflags) -I$(GC_INSTPATH)/include
+CFLAGS  = -Wall $(shell llvm-config --cflags) -I$(GC_INSTPATH)/include -O0
 LDFLAGS = -lfl $(GC_INSTPATH)/lib/libgc.a \
           $(shell llvm-config --ldflags --libs Core BitWriter)
 

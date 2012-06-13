@@ -396,7 +396,8 @@ l_value :   lval_id                     { $$ = $1; }
                                           temp = newTemp(typePointer($$.type));
                                           genQuad(ARRAY,op(OP_PLACE,$1.place),op(OP_PLACE,$3.place),op(OP_PLACE,temp));
                                           $$.place.placeType = REFERENCE;
-                                          $$.place.entry = temp.entry; }
+                                          $$.place.entry = temp.entry;
+                                          llvm_arrayValue($1.place.entry, temp.entry, $3.place.entry); }
         ;
 
 lval_id : T_id  { if((lval = lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL) {
