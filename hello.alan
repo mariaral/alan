@@ -1,12 +1,22 @@
 hello () : proc
-c : int[42];
-x : byte;
+  c : int[42];
+  x : byte;
+
   foo1(x:int, y:reference int) : int
     z : int;
+
     foo2(s:reference byte[]) : proc
-    { c[3] = 42; }
-  { return 42; }
+    {
+      c[3] = 42;
+      foo1(42, x);
+      foo1(x, c[5]);
+    }
+
+  {
+    --foo2("Hello, world\n");
+    return 42;
+  }
+
 {
-	if (1==2) c[c[2]]=1;
-	(* writeString("Hello world!\n"); *)
+    foo1(42, c[c[2]]);
 }

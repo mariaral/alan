@@ -260,7 +260,8 @@ func_call     : T_id T_oppar    { typeError = false;
                                     typeError = true;
                                     break;
                                   }
-                                  currentArg = fun_call->u.eFunction.firstArgument; }
+                                  currentArg = fun_call->u.eFunction.firstArgument;
+                                  llvm_createCall(fun_call); }
                  expr_list T_clpar  { if(typeError) {
                                         $$.type = typeUnknown;
                                         typeError = false;
@@ -272,7 +273,8 @@ func_call     : T_id T_oppar    { typeError = false;
                                         $$.place = temp;
                                        }
                                        $$.type = retType;
-                                       genQuad(CALL,op(OP_NOTHING),op(OP_NOTHING),op(OP_NAME,$1)); }
+                                       genQuad(CALL,op(OP_NOTHING),op(OP_NOTHING),op(OP_NAME,$1));
+                                       llvm_doCall($$.place.entry); }
         ;
 
 expr_list   :   /*EMPTY*/ { if(currentArg!=NULL) {
@@ -295,14 +297,16 @@ expr_list0  :   expr    { if(typeError) break;
                                 genQuad(PAR,op(OP_PLACE,$1.place),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
                           }
                           if(currentArg!=NULL)  
-                             error("Too few arguments at call"); }
+                             error("Too few arguments at call");
+                          llvm_addCallParam($1.place.entry); }
 
             |   T_string    { if(typeError) break;
                               arg=currentArg;
                               if(paramString(&many_arg,&currentArg))
                                 genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
                               if(currentArg!=NULL) 
-                                error("Too few arguments at call"); }
+                                error("Too few arguments at call");
+                              llvm_addCallParam( newString($1) ); }
 
             |   expr        { if(typeError) break;
                               arg=currentArg;
@@ -313,13 +317,15 @@ expr_list0  :   expr    { if(typeError) break;
                                 genQuad(PAR,op(OP_PLACE,temp),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
                               }
                               else
-                                genQuad(PAR,op(OP_PLACE,$1.place),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING)); }
+                                genQuad(PAR,op(OP_PLACE,$1.place),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
+                              llvm_addCallParam($1.place.entry); }
                                 
                 T_comma expr_list0
            |    T_string        { if(typeError) break;
                                   arg=currentArg;
                                  if(paramString(&many_arg,&currentArg)) 
-                                    genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING)); }
+                                    genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
+                                 llvm_addCallParam( newString($1) ); }
                 T_comma expr_list0
            ;
 

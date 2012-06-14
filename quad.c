@@ -301,3 +301,16 @@ void printOp(operand op)
         }
     }
 }
+
+SymbolEntry *newString(char *str)
+{
+    Type typeString;
+
+    typeString = (struct Type_tag*) new(sizeof(struct Type_tag));
+    typeString->kind = TYPE_ARRAY;
+    typeString->refType = typeChar;
+    typeString->size = strlen(str);
+    typeString->refCount = 0;
+
+    return newConstant(NULL, typeString, str);
+}
