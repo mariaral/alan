@@ -11,16 +11,25 @@
 
 extern Scope *currentScope;
 
-LLVMModuleRef mod;
-LLVMBuilderRef builder;
-LLVMValueRef func;
-LLVMBasicBlockRef block;
+static LLVMModuleRef mod;
+static LLVMBuilderRef builder;
+static LLVMValueRef func;
+static LLVMBasicBlockRef block;
+
+static struct {
+    SymbolEntry *fun_entry;
+    LLVMValueRef *call_fac_args;
+    SymbolEntry *arg;
+    int counter;
+} func_call;
 
 int getNumberOfArgs(SymbolEntry *firstArgument);
 LLVMTypeRef convertToLlvmType(Type type, bool byRef);
 
 
-/* Operate on module */
+/* ---------------------------------------
+ * Operate on module
+ */
 void llvm_createModule()
 {
     mod = LLVMModuleCreateWithName("alan_module");
@@ -39,7 +48,9 @@ void llvm_printModule(char *filename)
 }
 
 
-/* Operate on functions */
+/* ---------------------------------------
+ * Operate on functions
+ */
 void llvm_createFunction(SymbolEntry *funEntry)
 {
     int i;
@@ -217,7 +228,9 @@ void llvm_closeFunction(SymbolEntry *funEntry)
 }
 
 
-/* Operate on variables */
+/* ---------------------------------------
+ * Operate on variables
+ */
 void llvm_createVariable(SymbolEntry *varEntry)
 {
     char *name;
@@ -252,7 +265,7 @@ void llvm_createVariable(SymbolEntry *varEntry)
         break;
     default:
         internal("in llvm_createVariable: not a valid variable type\n");
-        varValue = LLVMConstNull(LLVMInt32Type()); /* to suppress warnings */
+        varValue = NULL; /* to suppress warnings */
     }
 
     varEntry->u.eVariable.temp_value = varValue;
@@ -273,7 +286,7 @@ void llvm_arrayValue(SymbolEntry *varEntry,
         break;
     default:
         internal("in llvm_arrayVariable: unsupported entryType for varEntry\n");
-        varValue = LLVMConstNull(LLVMInt32Type()); /* to suppress warnings */
+        varValue = NULL; /* to suppress warnings */
     }
 
     /* The temporary variable that will be a pointer */
@@ -298,7 +311,7 @@ void llvm_arrayValue(SymbolEntry *varEntry,
         break;
     default:
         internal("in llvm_arrayVariable: unsupported entryType for offsetEntry\n");
-        offsetValue[0] = LLVMConstNull(LLVMInt32Type()); /* to suppress warnings */
+        offsetValue[0] = NULL; /* to suppress warnings */
     }
 
     ptrValue = LLVMBuildGEP(builder, varValue, offsetValue, 1, "");
@@ -307,13 +320,130 @@ void llvm_arrayValue(SymbolEntry *varEntry,
 }
 
 
-/* Operate on statements */
+/* ---------------------------------------
+ * Operate on function calls
+ */
+void llvm_createCall(SymbolEntry *funEntry)
+{
+    int total_args;
+
+    if(funEntry->entryType != ENTRY_FUNCTION)
+        internal("in llvm_createCall: funEntry is not a function entry\n");
+
+    func_call.fun_entry = funEntry;
+    total_args = funEntry->u.eFunction.numOfArgs + funEntry->u.eFunction.numOfLifted;
+    func_call.call_fac_args = (LLVMValueRef *) new(total_args*sizeof(LLVMValueRef));
+    func_call.arg = funEntry->u.eFunction.firstArgument;
+    func_call.counter = 0;
+}
+
+void llvm_addCallParam(SymbolEntry *parEntry)
+{
+    int counter, str_size;
+    SymbolEntry *arg;
+    LLVMValueRef tempValue;
+    LLVMValueRef offsetValue[2];
+
+    counter = func_call.counter;
+    arg = func_call.arg;
+    switch(parEntry->entryType) {
+    case ENTRY_VARIABLE:
+        if(arg->u.eParameter.mode == PASS_BY_VALUE)
+            tempValue = LLVMBuildLoad(builder, parEntry->u.eVariable.value, "");
+        else
+            tempValue = parEntry->u.eVariable.value;
+        break;
+    case ENTRY_CONSTANT:
+        switch(parEntry->u.eConstant.type->kind) {
+        case TYPE_INTEGER:
+            tempValue = LLVMConstInt(LLVMInt32Type(), parEntry->u.eConstant.value.vInteger, 0);
+            break;
+        case TYPE_CHAR:
+            tempValue = LLVMConstInt(LLVMInt8Type(), parEntry->u.eConstant.value.vChar, 0);
+            break;
+        case TYPE_ARRAY:
+            /* only string can be constant of type array */
+            str_size = parEntry->u.eConstant.type->size;
+            //tempValue = LLVMConstString(parEntry->u.eConstant.value.vString, str_size, 0);
+            tempValue = LLVMBuildGlobalString(builder, parEntry->u.eConstant.value.vString, "");
+            offsetValue[0] = LLVMConstInt(LLVMInt32Type(), 0, 0);
+            offsetValue[1] = LLVMConstInt(LLVMInt32Type(), 0, 0);
+            tempValue = LLVMBuildGEP(builder, tempValue, offsetValue, 2, "");
+            //tempValue = LLVMBuildLoad(builder, tempValue, "");
+            break;
+        default:
+            internal("in llvm_addCallParam: not a valid constant type\n");
+            tempValue = NULL; /* to suppress warnings */
+        }
+        break;
+    case ENTRY_PARAMETER:
+        if(arg->u.eParameter.mode == PASS_BY_VALUE)
+            tempValue = LLVMBuildLoad(builder, parEntry->u.eParameter.value, "");
+        else
+            tempValue = parEntry->u.eParameter.value;
+        break;
+    case ENTRY_TEMPORARY:
+        tempValue = parEntry->u.eTemporary.value;
+        if((LLVMGetTypeKind(LLVMTypeOf(tempValue)) == LLVMPointerTypeKind)
+        && (arg->u.eParameter.mode == PASS_BY_VALUE))
+            tempValue = LLVMBuildLoad(builder, tempValue, "");
+        break;
+    default:
+        internal("in llvm_addCallParam: not a valid entry type\n");
+        tempValue = NULL; /* to suppress warnings */
+    }
+
+    func_call.call_fac_args[counter] = tempValue;
+    func_call.arg = arg->u.eParameter.next;
+    func_call.counter++;
+}
+
+void llvm_doCall(SymbolEntry *result)
+{
+    SymbolEntry *func = func_call.fun_entry;
+    EntriesArray *lifted = func->u.eFunction.liftedArguments;
+    LLVMValueRef *call_fac_args = func_call.call_fac_args;
+    int counter = func_call.counter;
+    SymbolEntry *temp;
+    LLVMValueRef fun_value = func->u.eFunction.value;
+
+    /* Pass the lifted values as arguments */
+    while(lifted != NULL) {
+        temp = lifted->entry;
+        switch(temp->entryType) {
+        case ENTRY_VARIABLE:
+            call_fac_args[counter] = temp->u.eVariable.value;
+            break;
+        case ENTRY_PARAMETER:
+            call_fac_args[counter] = temp->u.eParameter.value;
+            break;
+        default:
+            internal("in llvm_doCall: not a valid lifted entry type\n");
+        }
+        counter++;
+        lifted = lifted->next;
+    }
+
+    /* result is always temp entry */
+    fun_value =
+        LLVMBuildCall(builder, fun_value, call_fac_args, counter, "");
+
+    if(result)
+        result->u.eTemporary.value = fun_value;
+}
+
+
+/* ---------------------------------------
+ * Operate on statements
+ */
 void llvm_stmtAssign(SymbolEntry *lvalEntry, SymbolEntry *rvalEntry)
 {
 }
 
 
-/* Operate on Types */
+/* ---------------------------------------
+ * Operate on Types
+ */
 LLVMTypeRef convertToLlvmType(Type type, bool byRef)
 {
     LLVMTypeRef temp;
@@ -358,5 +488,5 @@ LLVMTypeRef convertToLlvmType(Type type, bool byRef)
     }
 
     /* Just to suspend warnings */
-    return LLVMInt32Type();
+    return NULL;
 }

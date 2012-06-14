@@ -18,6 +18,11 @@ void llvm_createVariable(SymbolEntry *varEntry);
 void llvm_arrayValue(SymbolEntry *varEntry,
         SymbolEntry *ptrEntry, SymbolEntry *offsetEntry);
 
+/* Operate on function calls */
+void llvm_createCall(SymbolEntry *funEntry);
+void llvm_addCallParam(SymbolEntry *parEntry);
+void llvm_doCall(SymbolEntry *result);
+
 /* Operate on statements */
 void llvm_stmtAssign(SymbolEntry *lvalEntry, SymbolEntry *rvalEntry);
 

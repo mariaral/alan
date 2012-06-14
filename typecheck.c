@@ -90,6 +90,3 @@ out:
     *point_arg = arg->u.eParameter.next;
     return ret;
 }
-
-
-

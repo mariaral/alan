@@ -88,6 +88,8 @@ void genQuad(oper, operand, operand, operand);
 
 Place newTemp(Type);
 
+SymbolEntry *newString(char *str);
+
 labelList * emptyList();
 
 labelList * makeList(int);
