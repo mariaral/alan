@@ -13,7 +13,7 @@ hello () : proc
     }
 
   {
-    --foo2("Hello, world\n");
+    foo2("Hello, world\n");
     return 42;
   }
 

@@ -204,7 +204,7 @@ void llvm_startFunction(SymbolEntry *funEntry)
     }
 
     /* Now restore my local variables */
-    tempEntry = funEntry->nextInScope;
+    tempEntry = currentScope->entries;
     while(tempEntry != NULL) {
         if(tempEntry->entryType == ENTRY_VARIABLE)
             tempEntry->u.eVariable.value = tempEntry->u.eVariable.temp_value;
@@ -337,9 +337,10 @@ void llvm_createCall(SymbolEntry *funEntry)
     func_call.counter = 0;
 }
 
+/* XXX: handle nested calls */
 void llvm_addCallParam(SymbolEntry *parEntry)
 {
-    int counter, str_size;
+    int counter;
     SymbolEntry *arg;
     LLVMValueRef tempValue;
     LLVMValueRef offsetValue[2];
@@ -363,13 +364,10 @@ void llvm_addCallParam(SymbolEntry *parEntry)
             break;
         case TYPE_ARRAY:
             /* only string can be constant of type array */
-            str_size = parEntry->u.eConstant.type->size;
-            //tempValue = LLVMConstString(parEntry->u.eConstant.value.vString, str_size, 0);
             tempValue = LLVMBuildGlobalString(builder, parEntry->u.eConstant.value.vString, "");
             offsetValue[0] = LLVMConstInt(LLVMInt32Type(), 0, 0);
             offsetValue[1] = LLVMConstInt(LLVMInt32Type(), 0, 0);
             tempValue = LLVMBuildGEP(builder, tempValue, offsetValue, 2, "");
-            //tempValue = LLVMBuildLoad(builder, tempValue, "");
             break;
         default:
             internal("in llvm_addCallParam: not a valid constant type\n");
