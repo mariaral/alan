@@ -16,12 +16,13 @@ static LLVMBuilderRef builder;
 static LLVMValueRef func;
 static LLVMBasicBlockRef block;
 
-static struct {
+static struct func_call_tag {
     SymbolEntry *fun_entry;
     LLVMValueRef *call_fac_args;
     SymbolEntry *arg;
     int counter;
-} func_call;
+    struct func_call_tag *prev;
+} *func_call = NULL;
 
 int getNumberOfArgs(SymbolEntry *firstArgument);
 LLVMTypeRef convertToLlvmType(Type type, bool byRef);
@@ -326,18 +327,21 @@ void llvm_arrayValue(SymbolEntry *varEntry,
 void llvm_createCall(SymbolEntry *funEntry)
 {
     int total_args;
+    struct func_call_tag *temp;
 
     if(funEntry->entryType != ENTRY_FUNCTION)
         internal("in llvm_createCall: funEntry is not a function entry\n");
 
-    func_call.fun_entry = funEntry;
+    temp = (struct func_call_tag *) new(sizeof(struct func_call_tag));
+    temp->prev = func_call;
+    func_call = temp;
+    func_call->fun_entry = funEntry;
     total_args = funEntry->u.eFunction.numOfArgs + funEntry->u.eFunction.numOfLifted;
-    func_call.call_fac_args = (LLVMValueRef *) new(total_args*sizeof(LLVMValueRef));
-    func_call.arg = funEntry->u.eFunction.firstArgument;
-    func_call.counter = 0;
+    func_call->call_fac_args = (LLVMValueRef *) new(total_args*sizeof(LLVMValueRef));
+    func_call->arg = funEntry->u.eFunction.firstArgument;
+    func_call->counter = 0;
 }
 
-/* XXX: handle nested calls */
 void llvm_addCallParam(SymbolEntry *parEntry)
 {
     int counter;
@@ -345,8 +349,8 @@ void llvm_addCallParam(SymbolEntry *parEntry)
     LLVMValueRef tempValue;
     LLVMValueRef offsetValue[2];
 
-    counter = func_call.counter;
-    arg = func_call.arg;
+    counter = func_call->counter;
+    arg = func_call->arg;
     switch(parEntry->entryType) {
     case ENTRY_VARIABLE:
         if(arg->u.eParameter.mode == PASS_BY_VALUE)
@@ -391,17 +395,17 @@ void llvm_addCallParam(SymbolEntry *parEntry)
         tempValue = NULL; /* to suppress warnings */
     }
 
-    func_call.call_fac_args[counter] = tempValue;
-    func_call.arg = arg->u.eParameter.next;
-    func_call.counter++;
+    func_call->call_fac_args[counter] = tempValue;
+    func_call->arg = arg->u.eParameter.next;
+    func_call->counter++;
 }
 
 void llvm_doCall(SymbolEntry *result)
 {
-    SymbolEntry *func = func_call.fun_entry;
+    SymbolEntry *func = func_call->fun_entry;
     EntriesArray *lifted = func->u.eFunction.liftedArguments;
-    LLVMValueRef *call_fac_args = func_call.call_fac_args;
-    int counter = func_call.counter;
+    LLVMValueRef *call_fac_args = func_call->call_fac_args;
+    int counter = func_call->counter;
     SymbolEntry *temp;
     LLVMValueRef fun_value = func->u.eFunction.value;
 
@@ -428,6 +432,8 @@ void llvm_doCall(SymbolEntry *result)
 
     if(result)
         result->u.eTemporary.value = fun_value;
+
+    func_call = func_call->prev;
 }
 
 
