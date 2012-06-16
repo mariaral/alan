@@ -71,7 +71,7 @@ symbol.o:    general.h error.h symbol.h
 error.o:     general.h error.h
 general.o:   general.h error.h symbol.h gc.h
 quad.o:      general.h error.h quad.h typecheck.h
-libalan.o:   symbol.h
+libalan.o:   symbol.h llvm.h
 typecheck.o: quad.h error.h
 llvm.o:		 llvm.h symbol.h error.h general.h
 
