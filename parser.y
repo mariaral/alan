@@ -214,7 +214,8 @@ stmt        :   T_semic { ret_at_end = false; $$ = emptyList(); }
                                       genQuad(RET,op(OP_NOTHING),op(OP_NOTHING),op(OP_NOTHING));
                                       ret_at_end = true;
                                       ret_exists = true;
-                                      $$ = emptyList(); }
+                                      $$ = emptyList();
+                                      llvm_stmtReturn(NULL); }
 
             |   T_return expr T_semic   { currentFunction = currentScope->parent->entries;
                                           if(currentFunction->u.eFunction.resultType!=$2.type)
@@ -223,7 +224,8 @@ stmt        :   T_semic { ret_at_end = false; $$ = emptyList(); }
                                           genQuad(RET,op(OP_NOTHING),op(OP_NOTHING),op(OP_NOTHING));
                                           ret_at_end = true;
                                           ret_exists = true;
-                                          $$ = emptyList(); }
+                                          $$ = emptyList();
+                                          llvm_stmtReturn($2.place.entry); }
             ;
 
 else_stmt   :       /*EMPTY*/ { $<l>$ = $<l>-1; }
