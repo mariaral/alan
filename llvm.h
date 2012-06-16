@@ -25,5 +25,6 @@ void llvm_doCall(SymbolEntry *result);
 
 /* Operate on statements */
 void llvm_stmtAssign(SymbolEntry *lvalEntry, SymbolEntry *rvalEntry);
+void llvm_stmtReturn(SymbolEntry *retEntry);
 
 #endif

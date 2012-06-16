@@ -14,7 +14,6 @@ extern Scope *currentScope;
 static LLVMModuleRef mod;
 static LLVMBuilderRef builder;
 static LLVMValueRef func;
-static LLVMBasicBlockRef block;
 
 static struct func_call_tag {
     SymbolEntry *fun_entry;
@@ -147,7 +146,7 @@ void llvm_createFunction(SymbolEntry *funEntry)
     funEntry->u.eFunction.type = funcType;
     LLVMSetLinkage(funEntry->u.eFunction.value, LLVMInternalLinkage);
     /* And create the entry basic block */
-    LLVMAppendBasicBlock(funEntry->u.eFunction.value, "entry");
+    LLVMAppendBasicBlock(funEntry->u.eFunction.value, "Entry");
 }
 
 void llvm_startFunction(SymbolEntry *funEntry)
@@ -158,7 +157,7 @@ void llvm_startFunction(SymbolEntry *funEntry)
     EntriesArray *tempArray;
     LLVMValueRef argValue, allocValue;
     LLVMTypeRef *fac_args;
-
+    LLVMBasicBlockRef block;
 
     if(funEntry->entryType != ENTRY_FUNCTION)
         internal("llvm_startFunction called without a function entry\n");
@@ -220,7 +219,9 @@ void llvm_closeFunction(SymbolEntry *funEntry)
     LLVMValueRef instr;
     LLVMOpcode op;
     LLVMTypeRef retType;
+    LLVMBasicBlockRef block;
 
+    block = LLVMGetLastBasicBlock(funEntry->u.eFunction.value);
     instr = LLVMGetLastInstruction(block);
     if(!instr ||
       ((op=LLVMGetInstructionOpcode(instr))!=LLVMRet && op!=LLVMBr)) {
@@ -242,6 +243,7 @@ void llvm_createVariable(SymbolEntry *varEntry)
     LLVMTypeRef varType, elemType;
     unsigned arrayLen;
     LLVMValueRef vArrayLen;
+    LLVMBasicBlockRef block;
 
     if(varEntry->entryType != ENTRY_VARIABLE)
         internal("in llvm_createVariable: varEntry is not an ENTRY_VARIABLE\n");
@@ -455,6 +457,22 @@ void llvm_stmtAssign(SymbolEntry *lvalEntry, SymbolEntry *rvalEntry)
 
     /* Store it */
     LLVMBuildStore(builder, rval, lval);
+}
+
+void llvm_stmtReturn(SymbolEntry *retEntry)
+{
+    LLVMValueRef retValue, funcValue;
+    LLVMBasicBlockRef block;
+
+    if(retEntry != NULL) {
+        retValue = getLlvmRValue(retEntry, false);
+        LLVMBuildRet(builder, retValue);
+    } else {
+        LLVMBuildRetVoid(builder);
+    }
+    funcValue = currentScope->parent->entries->u.eFunction.value;
+    block = LLVMAppendBasicBlock(funcValue, "Unreachable");
+    LLVMPositionBuilderAtEnd(builder, block);
 }
 
 

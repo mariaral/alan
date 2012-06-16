@@ -9,7 +9,9 @@ hello () : proc
     {
       c[3] = 42;
       foo1(42, x);
+      return;
       foo1(x, c[5]);
+      return;
     }
 
   {
