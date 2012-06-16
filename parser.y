@@ -88,7 +88,7 @@ func_def    :   T_id    { fun_decl = lookupEntry($1,LOOKUP_CURRENT_SCOPE,false);
                           if(fun_decl!=NULL) {
                             error("Duplicate declaration of function");
                             destroyLocalEntry(fun_decl);
-                          } 
+                          }
                           fun_decl = newFunction($1);
                           openScope(); }
 
@@ -96,14 +96,14 @@ func_def    :   T_id    { fun_decl = lookupEntry($1,LOOKUP_CURRENT_SCOPE,false);
                 { endFunctionHeader(fun_decl,$7);
                   llvm_createFunction(fun_decl); }
 
-                local_def0  { ret_at_end=false; 
-                              ret_exists=false;  
+                local_def0  { ret_at_end=false;
+                              ret_exists=false;
                               quadLast = NULL;
                               genQuad(UNIT,op(OP_NAME,$1),op(OP_NOTHING),op(OP_NOTHING));
                               llvm_startFunction(currentScope->parent->entries); }
 
                 compound_stmt   { currentFunction = currentScope->parent->entries;
-                                  if((!ret_exists)&&(!equalType(currentFunction->u.eFunction.resultType,typeVoid))) 
+                                  if((!ret_exists)&&(!equalType(currentFunction->u.eFunction.resultType,typeVoid)))
                                     error("Non proc functions must return value");
 
 
@@ -144,7 +144,7 @@ fpar_def    :   T_id T_dd type  { if($3->kind != TYPE_IARRAY)
 data_type   :   T_int   { $$ = typeInteger; }
             |   T_byte  { $$ = typeChar;    }
             ;
-    
+
 type        :   data_type               { $$ = $1; }
             |   data_type T_opj T_clj   { $$ = typeIArray($1); }
             ;
@@ -182,23 +182,24 @@ stmt        :   T_semic { ret_at_end = false; $$ = emptyList(); }
                                                   }
                                                   genQuad(ASSIGN,op(OP_PLACE,$3.place),op(OP_NOTHING),op(OP_PLACE,$1.place));
                                                   ret_at_end = false;
-                                                  $$ = emptyList(); }
+                                                  $$ = emptyList();
+                                                  llvm_stmtAssign($1.place.entry, $3.place.entry); }
 
             |   compound_stmt       { ret_at_end = false; $$ = $1; }
 
-            |   func_call T_semic   { if((!equalType($1.type,typeVoid))&&(!equalType($1.type,typeUnknown))) 
+            |   func_call T_semic   { if((!equalType($1.type,typeVoid))&&(!equalType($1.type,typeUnknown)))
                                             warning("Function result is not used");
                                           $$ = emptyList();
                                           ret_at_end = false; }
 
             |   T_if T_oppar cond T_clpar { backpatch($3.True,nextQuad());
                                             $<l>$.L1 = $3.False;
-                                            $<l>$.L2 = emptyList(); } 
+                                            $<l>$.L2 = emptyList(); }
 
                 stmt else_stmt { $$ = merge(merge($6,$<l>7.L1),$<l>7.L2);
                                  ret_at_end = false; }
 
-            |   T_while { $<i>$ = nextQuad(); } 
+            |   T_while { $<i>$ = nextQuad(); }
 
                 T_oppar cond T_clpar { backpatch($4.True,nextQuad()); }
 
@@ -208,7 +209,7 @@ stmt        :   T_semic { ret_at_end = false; $$ = emptyList(); }
                           ret_at_end = false; }
 
             |   T_return T_semic    { currentFunction = currentScope->parent->entries;
-                                      if(currentFunction->u.eFunction.resultType!=typeVoid) 
+                                      if(currentFunction->u.eFunction.resultType!=typeVoid)
                                         error("Function returns no value");
                                       genQuad(RET,op(OP_NOTHING),op(OP_NOTHING),op(OP_NOTHING));
                                       ret_at_end = true;
@@ -216,8 +217,8 @@ stmt        :   T_semic { ret_at_end = false; $$ = emptyList(); }
                                       $$ = emptyList(); }
 
             |   T_return expr T_semic   { currentFunction = currentScope->parent->entries;
-                                          if(currentFunction->u.eFunction.resultType!=$2.type) 
-                                          
+                                          if(currentFunction->u.eFunction.resultType!=$2.type)
+
                                             error("Function must return same type of value as declared");
                                           genQuad(RET,op(OP_NOTHING),op(OP_NOTHING),op(OP_NOTHING));
                                           ret_at_end = true;
@@ -233,12 +234,12 @@ else_stmt   :       /*EMPTY*/ { $<l>$ = $<l>-1; }
                                 $<l>$.L1 = $<Next>2; }
             ;
 
-compound_stmt   :   T_begin { L = emptyList(); } 
+compound_stmt   :   T_begin { L = emptyList(); }
                     compound_stmt0  T_end { $$ = $3; }
                 ;
 
 compound_stmt0  :   /*EMPTY*/ { $$ = L; }
-                |   { backpatch(L,nextQuad()); } 
+                |   { backpatch(L,nextQuad()); }
                     stmt { L = $2; }
                     compound_stmt0 { $$ = $4; }
                 ;
@@ -271,6 +272,8 @@ func_call     : T_id T_oppar    { typeError = false;
                                         temp=newTemp(retType);
                                         genQuad(PAR,op(OP_RESULT),op(OP_PLACE,temp),op(OP_NOTHING));
                                         $$.place = temp;
+                                       } else {
+                                        $$.place.entry = NULL;
                                        }
                                        $$.type = retType;
                                        genQuad(CALL,op(OP_NOTHING),op(OP_NOTHING),op(OP_NAME,$1));
@@ -281,7 +284,7 @@ expr_list   :   /*EMPTY*/ { if(currentArg!=NULL) {
                                 error("Too few arguments at call");
                                 break;
                             } }
-            |   { many_arg=false; } 
+            |   { many_arg=false; }
                 expr_list0
             ;
 
@@ -296,7 +299,7 @@ expr_list0  :   expr    { if(typeError) break;
                             else
                                 genQuad(PAR,op(OP_PLACE,$1.place),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
                           }
-                          if(currentArg!=NULL)  
+                          if(currentArg!=NULL)
                              error("Too few arguments at call");
                           llvm_addCallParam($1.place.entry); }
 
@@ -304,7 +307,7 @@ expr_list0  :   expr    { if(typeError) break;
                               arg=currentArg;
                               if(paramString(&many_arg,&currentArg))
                                 genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
-                              if(currentArg!=NULL) 
+                              if(currentArg!=NULL)
                                 error("Too few arguments at call");
                               llvm_addCallParam( newString($1) ); }
 
@@ -319,11 +322,11 @@ expr_list0  :   expr    { if(typeError) break;
                               else
                                 genQuad(PAR,op(OP_PLACE,$1.place),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
                               llvm_addCallParam($1.place.entry); }
-                                
+
                 T_comma expr_list0
            |    T_string        { if(typeError) break;
                                   arg=currentArg;
-                                 if(paramString(&many_arg,&currentArg)) 
+                                 if(paramString(&many_arg,&currentArg))
                                     genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
                                  llvm_addCallParam( newString($1) ); }
                 T_comma expr_list0
@@ -345,15 +348,15 @@ expr    :   T_constnum  { $$.type = typeInteger;
 
         |   T_oppar expr T_clpar    { $$.type = $2.type;
                                       $$.place = $2.place;}
-       
-        |   func_call   { if($1.type!=typeVoid) 
+
+        |   func_call   { if($1.type!=typeVoid)
                             $$ = $1;
                           else {
                             error("Cannot call proc");
-                            $$.type = typeUnknown; 
+                            $$.type = typeUnknown;
                           } }
 
-        |   T_plus expr %prec UPLUS { if(($2.type!=typeInteger)&&($2.type!=typeUnknown)) { 
+        |   T_plus expr %prec UPLUS { if(($2.type!=typeInteger)&&($2.type!=typeUnknown)) {
                                         error("Opperand must be type int");
                                         $$.type = typeUnknown;
                                         break;
@@ -425,8 +428,8 @@ lval_id : T_id  { if((lval = lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL) {
                     break;
                   }
                   error("Identifier %s is not a valid variable",$1);
-                  $$.type = typeUnknown; } 
-                                               
+                  $$.type = typeUnknown; }
+
         ;
 
 cond    :   T_true  { genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
@@ -455,10 +458,10 @@ cond    :   T_true  { genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN))
 
         |   expr T_le expr  { relopQuad(LE, &($1), &($3),&($$)); }
 
-        |   cond T_and { backpatch($1.True,nextQuad()); } 
+        |   cond T_and { backpatch($1.True,nextQuad()); }
             cond       { $$.True = $4.True; $$.False = merge($1.False,$4.False); }
 
-        |   cond T_or { backpatch($1.False,nextQuad()); } 
+        |   cond T_or { backpatch($1.False,nextQuad()); }
             cond      {  $$.True = merge($1.True,$4.True); $$.False = $4.False; }
         ;
 
