@@ -337,19 +337,21 @@ expr_list0  :   expr    { if(typeError) break;
 expr    :   T_constnum  { $$.type = typeInteger;
                           sprintf(buff,"%d",const_counter++);
                           $$.place.placeType = ENTRY;
-                          $$.place.entry = newConstant(buff,typeInteger,$1); }
+                          $$.place.entry = newConstant(buff,typeInteger,$1);
+                          llvm_createExpr(LLVM_CONSTNUM, NULL, NULL, $$.place.entry); }
 
         |   T_constchar { $$.type = typeChar;
                           sprintf(buff,"%d",const_counter++);
                           $$.place.placeType = ENTRY;
-                          $$.place.entry = newConstant(buff,typeChar,$1); }
+                          $$.place.entry = newConstant(buff,typeChar,$1);
+                          llvm_createExpr(LLVM_CONSTCHAR, NULL, NULL, $$.place.entry); }
 
         |   l_value     { $$.type = $1.type;
                           $$.place = $1.place; }
 
 
         |   T_oppar expr T_clpar    { $$.type = $2.type;
-                                      $$.place = $2.place;}
+                                      $$.place = $2.place; }
 
         |   func_call   { if($1.type!=typeVoid)
                             $$ = $1;
@@ -363,7 +365,8 @@ expr    :   T_constnum  { $$.type = typeInteger;
                                         $$.type = typeUnknown;
                                         break;
                                       }
-                                      $$ = $2; }
+                                      $$ = $2;
+                                      llvm_createExpr(LLVM_UPLUS, NULL, $2.place.entry, $$.place.entry); }
 
         |   T_minus expr %prec UMINUS   { if($2.type==typeUnknown) {
                                             $$.type = typeUnknown;
@@ -377,17 +380,23 @@ expr    :   T_constnum  { $$.type = typeInteger;
                                           $$.type = $2.type;
                                           temp = newTemp($2.type);
                                           genQuad(MINUS,op(OP_PLACE,$2.place),op(OP_NOTHING),op(OP_PLACE,temp));
-                                          $$.place = temp; }
+                                          $$.place = temp;
+                                          llvm_createExpr(LLVM_UMINUS, NULL, $2.place.entry, $$.place.entry); }
 
-        |   expr T_plus expr    { binopQuad(PLUS, &($1), &($3), &($$)); }
+        |   expr T_plus expr    { binopQuad(PLUS, &($1), &($3), &($$));
+                                  llvm_createExpr(LLVM_PLUS, $1.place.entry, $3.place.entry, $$.place.entry); }
 
-        |   expr T_minus expr   { binopQuad(MINUS, &($1), &($3), &($$)); }
+        |   expr T_minus expr   { binopQuad(MINUS, &($1), &($3), &($$));
+                                  llvm_createExpr(LLVM_PLUS, $1.place.entry, $3.place.entry, $$.place.entry); }
 
-        |   expr T_mult expr    { binopQuad(MULT, &($1), &($3), &($$)); }
+        |   expr T_mult expr    { binopQuad(MULT, &($1), &($3), &($$));
+                                  llvm_createExpr(LLVM_PLUS, $1.place.entry, $3.place.entry, $$.place.entry); }
 
-        |   expr T_div expr     { binopQuad(DIVI, &($1), &($3), &($$)); }
+        |   expr T_div expr     { binopQuad(DIVI, &($1), &($3), &($$));
+                                  llvm_createExpr(LLVM_PLUS, $1.place.entry, $3.place.entry, $$.place.entry); }
 
-        |   expr T_mod expr     { binopQuad(MOD, &($1), &($3), &($$)); }
+        |   expr T_mod expr     { binopQuad(MOD, &($1), &($3), &($$));
+                                  llvm_createExpr(LLVM_PLUS, $1.place.entry, $3.place.entry, $$.place.entry); }
 
         ;
 

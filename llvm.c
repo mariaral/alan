@@ -477,6 +477,54 @@ void llvm_stmtReturn(SymbolEntry *retEntry)
 
 
 /* ---------------------------------------
+ * Operate on expressions
+ */
+void llvm_createExpr(llvm_oper loper, SymbolEntry *leftEntry,
+        SymbolEntry *rightEntry, SymbolEntry *resultEntry)
+{
+    LLVMValueRef leftValue, rightValue;
+
+    if(leftEntry != NULL)
+        leftValue = getLlvmRValue(leftEntry, false);
+    if(rightEntry != NULL)
+        rightValue = getLlvmRValue(rightEntry, false);
+
+    switch(loper) {
+    case LLVM_CONSTNUM:
+        break;
+    case LLVM_CONSTCHAR:
+        break;
+    case LLVM_UPLUS:
+        break;
+    case LLVM_UMINUS:
+        resultEntry->u.eTemporary.value =
+            LLVMBuildNeg(builder, rightValue, "");
+        break;
+    case LLVM_PLUS:
+        resultEntry->u.eTemporary.value =
+            LLVMBuildAdd(builder, leftValue, rightValue, "");
+        break;
+    case LLVM_MINUS:
+        resultEntry->u.eTemporary.value =
+            LLVMBuildSub(builder, leftValue, rightValue, "");
+        break;
+    case LLVM_MULT:
+        resultEntry->u.eTemporary.value =
+            LLVMBuildMul(builder, leftValue, rightValue, "");
+        break;
+    case LLVM_DIV:
+        resultEntry->u.eTemporary.value =
+            LLVMBuildSDiv(builder, leftValue, rightValue, "");
+        break;
+    case LLVM_MOD:
+        resultEntry->u.eTemporary.value =
+            LLVMBuildSRem(builder, leftValue, rightValue, "");
+        break;
+    }
+}
+
+
+/* ---------------------------------------
  * Operate on Types
  */
 LLVMTypeRef convertToLlvmType(Type type, bool byRef)

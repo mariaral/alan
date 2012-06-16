@@ -27,4 +27,12 @@ void llvm_doCall(SymbolEntry *result);
 void llvm_stmtAssign(SymbolEntry *lvalEntry, SymbolEntry *rvalEntry);
 void llvm_stmtReturn(SymbolEntry *retEntry);
 
+/* Operate on expressions */
+typedef enum {
+    LLVM_CONSTNUM, LLVM_CONSTCHAR, LLVM_UPLUS, LLVM_UMINUS,
+    LLVM_PLUS, LLVM_MINUS, LLVM_MULT, LLVM_DIV, LLVM_MOD
+} llvm_oper;
+void llvm_createExpr(llvm_oper loper, SymbolEntry *leftEntry,
+        SymbolEntry *rightEntry, SymbolEntry *resultEntry);
+
 #endif
