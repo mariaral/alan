@@ -13,7 +13,6 @@ extern Scope *currentScope;
 
 static LLVMModuleRef mod;
 static LLVMBuilderRef builder;
-static LLVMValueRef func;
 
 static struct func_call_tag {
     SymbolEntry *fun_entry;
@@ -158,6 +157,7 @@ void llvm_startFunction(SymbolEntry *funEntry)
     LLVMValueRef argValue, allocValue;
     LLVMTypeRef *fac_args;
     LLVMBasicBlockRef block;
+    LLVMValueRef func;
 
     if(funEntry->entryType != ENTRY_FUNCTION)
         internal("llvm_startFunction called without a function entry\n");

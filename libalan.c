@@ -1,4 +1,5 @@
 #include "symbol.h"
+#include "llvm.h"
 
 void init_ready_functions()
 {
