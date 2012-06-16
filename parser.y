@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdbool.h>
 #include <gc.h>
 #include "general.h"
 #include "error.h"
@@ -94,7 +95,7 @@ func_def    :   T_id    { fun_decl = lookupEntry($1,LOOKUP_CURRENT_SCOPE,false);
 
                 T_oppar fpar_list T_clpar T_dd r_type
                 { endFunctionHeader(fun_decl,$7);
-                  llvm_createFunction(fun_decl); }
+                  llvm_createFunction(fun_decl, false); }
 
                 local_def0  { ret_at_end=false;
                               ret_exists=false;

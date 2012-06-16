@@ -21,6 +21,9 @@ hello () : proc
 
 {
   x = 'b';
-  c[4] = 41 + c[1];
+  c[4] = 42 + c[3];
+  writeString("Yeap, first program..");
+  writeInteger(42);
+  writeChar('\n');
 --  foo1(foo1(42,c[1]), c[c[2]]);
 }
