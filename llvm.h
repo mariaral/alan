@@ -1,6 +1,7 @@
 #ifndef LLVM_H
 #define LLVM_H 0
 
+#include <stdbool.h>
 #include "symbol.h"
 
 /* Operate on module */
@@ -9,7 +10,7 @@ void llvm_destroyModule();
 void llvm_printModule(char *filename);
 
 /* Operate on functions */
-void llvm_createFunction(SymbolEntry *funEntry);
+void llvm_createFunction(SymbolEntry *funEntry, bool isLib);
 void llvm_startFunction(SymbolEntry *funEntry);
 void llvm_closeFunction(SymbolEntry *funEntry);
 

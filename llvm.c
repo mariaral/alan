@@ -52,7 +52,7 @@ void llvm_printModule(char *filename)
 /* ---------------------------------------
  * Operate on functions
  */
-void llvm_createFunction(SymbolEntry *funEntry)
+void llvm_createFunction(SymbolEntry *funEntry, bool isLib)
 {
     int i;
     char *funName;
@@ -110,7 +110,10 @@ void llvm_createFunction(SymbolEntry *funEntry)
     }
 
     /* Get the name of the function */
-    funName =  getEntryName(funEntry);
+    if(isLib)
+        funName = funEntry->id;
+    else
+        funName =  getEntryName(funEntry);
     /* Allocate array for function's parameters */
     numOfArgs = funEntry->u.eFunction.numOfArgs + funEntry->u.eFunction.numOfLifted;
     fac_args = (LLVMTypeRef *) new(numOfArgs * sizeof(LLVMTypeRef));
@@ -143,9 +146,14 @@ void llvm_createFunction(SymbolEntry *funEntry)
     funcType = LLVMFunctionType(resultType, fac_args, numOfArgs, 0);
     funEntry->u.eFunction.value = LLVMAddFunction(mod, funName, funcType);
     funEntry->u.eFunction.type = funcType;
-    LLVMSetLinkage(funEntry->u.eFunction.value, LLVMInternalLinkage);
-    /* And create the entry basic block */
-    LLVMAppendBasicBlock(funEntry->u.eFunction.value, "Entry");
+
+    if(isLib) {
+        LLVMSetLinkage(funEntry->u.eFunction.value, LLVMExternalLinkage);
+    } else {
+        LLVMSetLinkage(funEntry->u.eFunction.value, LLVMInternalLinkage);
+        /* And create the entry basic block */
+        LLVMAppendBasicBlock(funEntry->u.eFunction.value, "Entry");
+    }
 }
 
 void llvm_startFunction(SymbolEntry *funEntry)
