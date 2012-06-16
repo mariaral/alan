@@ -10,6 +10,7 @@
 
 
 extern Scope *currentScope;
+extern bool global_typeError;
 
 static LLVMModuleRef mod;
 static LLVMBuilderRef builder;
@@ -45,6 +46,9 @@ void llvm_destroyModule()
 
 void llvm_printModule(char *filename)
 {
+    if(global_typeError)
+        return;
+
     LLVMWriteBitcodeToFile(mod, filename);
 }
 
@@ -55,13 +59,16 @@ void llvm_printModule(char *filename)
 void llvm_createFunction(SymbolEntry *funEntry, bool isLib)
 {
     int i;
-    char *funName;
+    const char *funName;
     int numOfArgs;
     SymbolEntry *parentFun, *tempEntry;
     EntriesArray *lifted, *tempArray;
     LLVMTypeRef *fac_args;
     LLVMTypeRef resultType;
     LLVMTypeRef funcType;
+
+    if(global_typeError)
+        return;
 
     if(funEntry->entryType != ENTRY_FUNCTION)
         internal("llvm_createFunction called without a function entry\n");
@@ -113,7 +120,7 @@ void llvm_createFunction(SymbolEntry *funEntry, bool isLib)
     if(isLib)
         funName = funEntry->id;
     else
-        funName =  getEntryName(funEntry);
+        funName = getEntryName(funEntry);
     /* Allocate array for function's parameters */
     numOfArgs = funEntry->u.eFunction.numOfArgs + funEntry->u.eFunction.numOfLifted;
     fac_args = (LLVMTypeRef *) new(numOfArgs * sizeof(LLVMTypeRef));
@@ -166,6 +173,9 @@ void llvm_startFunction(SymbolEntry *funEntry)
     LLVMTypeRef *fac_args;
     LLVMBasicBlockRef block;
     LLVMValueRef func;
+
+    if(global_typeError)
+        return;
 
     if(funEntry->entryType != ENTRY_FUNCTION)
         internal("llvm_startFunction called without a function entry\n");
@@ -229,6 +239,9 @@ void llvm_closeFunction(SymbolEntry *funEntry)
     LLVMTypeRef retType;
     LLVMBasicBlockRef block;
 
+    if(global_typeError)
+        return;
+
     block = LLVMGetLastBasicBlock(funEntry->u.eFunction.value);
     instr = LLVMGetLastInstruction(block);
     if(!instr ||
@@ -237,6 +250,29 @@ void llvm_closeFunction(SymbolEntry *funEntry)
         retType = LLVMGetReturnType(funEntry->u.eFunction.type);
         LLVMBuildRet(builder, LLVMConstNull(retType));
     }
+}
+
+void llvm_createMain(SymbolEntry *funEntry)
+{
+    LLVMValueRef funValue, mainValue;
+    LLVMTypeRef mainType;
+    LLVMBasicBlockRef block;
+
+    if(global_typeError)
+        return;
+
+    if(funEntry->entryType != ENTRY_FUNCTION)
+        internal("llvm_createMain called without a function entry\n");
+
+    mainType = LLVMFunctionType(LLVMInt32Type(), NULL, 0, 0);
+    mainValue = LLVMAddFunction(mod, "main", mainType);
+    block = LLVMAppendBasicBlock(mainValue, "Entry");
+    LLVMPositionBuilderAtEnd(builder, block);
+
+    funValue = funEntry->u.eFunction.value;
+    LLVMBuildCall(builder, funValue, NULL, 0, "");
+
+    LLVMBuildRet(builder, LLVMConstInt(LLVMInt32Type(), 0, 0));
 }
 
 
@@ -252,6 +288,9 @@ void llvm_createVariable(SymbolEntry *varEntry)
     unsigned arrayLen;
     LLVMValueRef vArrayLen;
     LLVMBasicBlockRef block;
+
+    if(global_typeError)
+        return;
 
     if(varEntry->entryType != ENTRY_VARIABLE)
         internal("in llvm_createVariable: varEntry is not an ENTRY_VARIABLE\n");
@@ -288,6 +327,9 @@ void llvm_arrayValue(SymbolEntry *varEntry,
         SymbolEntry *ptrEntry, SymbolEntry *offsetEntry)
 {
     LLVMValueRef varValue, ptrValue, offsetValue[1];
+
+    if(global_typeError)
+        return;
 
     /* The array variable */
     varValue = getLlvmLValue(varEntry);
@@ -385,6 +427,9 @@ void llvm_createCall(SymbolEntry *funEntry)
     int total_args;
     struct func_call_tag *temp;
 
+    if(global_typeError)
+        return;
+
     if(funEntry->entryType != ENTRY_FUNCTION)
         internal("in llvm_createCall: funEntry is not a function entry\n");
 
@@ -404,6 +449,9 @@ void llvm_addCallParam(SymbolEntry *parEntry)
     SymbolEntry *arg;
     LLVMValueRef tempValue;
 
+    if(global_typeError)
+        return;
+
     counter = func_call->counter;
     arg = func_call->arg;
     tempValue = getLlvmRValue(parEntry, arg->u.eParameter.mode==PASS_BY_REFERENCE);
@@ -421,6 +469,15 @@ void llvm_doCall(SymbolEntry *result)
     int counter = func_call->counter;
     SymbolEntry *temp;
     LLVMValueRef fun_value = func->u.eFunction.value;
+
+    if(global_typeError)
+        return;
+
+    func = func_call->fun_entry;
+    lifted = func->u.eFunction.liftedArguments;
+    call_fac_args = func_call->call_fac_args;
+    counter = func_call->counter;
+    fun_value = func->u.eFunction.value;
 
     /* Pass the lifted values as arguments */
     while(lifted != NULL) {
@@ -457,6 +514,9 @@ void llvm_stmtAssign(SymbolEntry *lvalEntry, SymbolEntry *rvalEntry)
 {
     LLVMValueRef lval, rval;
 
+    if(global_typeError)
+        return;
+
     /* Get the pointer to our lvalue */
     lval = getLlvmLValue(lvalEntry);
 
@@ -471,6 +531,9 @@ void llvm_stmtReturn(SymbolEntry *retEntry)
 {
     LLVMValueRef retValue, funcValue;
     LLVMBasicBlockRef block;
+
+    if(global_typeError)
+        return;
 
     if(retEntry != NULL) {
         retValue = getLlvmRValue(retEntry, false);
@@ -491,6 +554,9 @@ void llvm_createExpr(llvm_oper loper, SymbolEntry *leftEntry,
         SymbolEntry *rightEntry, SymbolEntry *resultEntry)
 {
     LLVMValueRef leftValue, rightValue;
+
+    if(global_typeError)
+        return;
 
     if(leftEntry != NULL)
         leftValue = getLlvmRValue(leftEntry, false);

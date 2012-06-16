@@ -82,7 +82,9 @@ char buff[10];
 program     :   { global_typeError = false;
                   openScope();
                   init_ready_functions(); }
-                  func_def { closeScope(); }
+                func_def
+                { llvm_createMain(currentScope->entries);
+                  closeScope(); }
             ;
 
 func_def    :   T_id    { fun_decl = lookupEntry($1,LOOKUP_CURRENT_SCOPE,false);

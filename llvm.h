@@ -13,6 +13,7 @@ void llvm_printModule(char *filename);
 void llvm_createFunction(SymbolEntry *funEntry, bool isLib);
 void llvm_startFunction(SymbolEntry *funEntry);
 void llvm_closeFunction(SymbolEntry *funEntry);
+void llvm_createMain(SymbolEntry *funEntry);
 
 /* Operate on variables */
 void llvm_createVariable(SymbolEntry *varEntry);
