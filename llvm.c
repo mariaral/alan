@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <string.h>
 #include <llvm-c/Core.h>
 #include <llvm-c/BitWriter.h>
 #include "llvm.h"
@@ -27,6 +28,7 @@ int getNumberOfArgs(SymbolEntry *firstArgument);
 LLVMTypeRef convertToLlvmType(Type type, bool byRef);
 LLVMValueRef getLlvmLValue(SymbolEntry *rvalEntry);
 LLVMValueRef getLlvmRValue(SymbolEntry *rvalEntry, bool byRef);
+char *escapeString(const char *str);
 
 
 /* ---------------------------------------
@@ -370,6 +372,7 @@ LLVMValueRef getLlvmLValue(SymbolEntry *rvalEntry)
 
 LLVMValueRef getLlvmRValue(SymbolEntry *rvalEntry, bool byRef)
 {
+    char *str;
     LLVMValueRef rval, offsetValue[2];
 
     switch(rvalEntry->entryType) {
@@ -389,7 +392,8 @@ LLVMValueRef getLlvmRValue(SymbolEntry *rvalEntry, bool byRef)
             break;
         case TYPE_ARRAY:
             /* only string can be constant of type array */
-            rval = LLVMBuildGlobalString(builder, rvalEntry->u.eConstant.value.vString, "");
+            str = escapeString(rvalEntry->u.eConstant.value.vString);
+            rval = LLVMBuildGlobalString(builder, str, "");
             offsetValue[0] = LLVMConstInt(LLVMInt32Type(), 0, 0);
             offsetValue[1] = LLVMConstInt(LLVMInt32Type(), 0, 0);
             rval = LLVMBuildGEP(builder, rval, offsetValue, 2, "");
@@ -646,4 +650,53 @@ LLVMTypeRef convertToLlvmType(Type type, bool byRef)
 
     /* Just to suspend warnings */
     return NULL;
+}
+
+
+/* ---------------------------------------
+ * Helper functions
+ */
+char *escapeString(const char *src)
+{
+    char *esc, *temp;
+    int src_len;
+    char hex[] = {'0', 'x', '0', '0', '\0'};
+
+    src_len = strlen(src);
+    esc = (char *) new(src_len * sizeof(char));
+
+    /* Throw away first and last chars (") and escape the rest */
+    temp = esc;
+    src++;
+    while(*src) {
+        if(*src == '\\') {
+            switch(*(++src)) {
+            case 'n' :
+                *temp = '\n'; break;
+            case 't' :
+                *temp = '\t'; break;
+            case 'r' :
+                *temp = '\r'; break;
+            case '0' :
+                *temp = '\0'; break;
+            case '\\':
+                *temp = '\\'; break;
+            case '\'':
+                *temp = '\''; break;
+            case '\"':
+                *temp = '\"'; break;
+            case 'x' :
+                hex[2]=*(++src); hex[3]=*(++src);
+                *temp = (char) strtol(hex, (char **)NULL, 16);
+            default:
+                *temp = *src;
+            }
+        } else {
+            *temp = *src;
+        }
+        src++; temp++;
+    }
+    *(--temp) = '\0';
+
+    return esc;
 }
