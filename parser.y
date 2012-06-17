@@ -400,16 +400,16 @@ expr    :   T_constnum  { $$.type = typeInteger;
                                   llvm_createExpr(LLVM_PLUS, $1.place.entry, $3.place.entry, $$.place.entry); }
 
         |   expr T_minus expr   { binopQuad(MINUS, &($1), &($3), &($$));
-                                  llvm_createExpr(LLVM_PLUS, $1.place.entry, $3.place.entry, $$.place.entry); }
+                                  llvm_createExpr(LLVM_MINUS, $1.place.entry, $3.place.entry, $$.place.entry); }
 
         |   expr T_mult expr    { binopQuad(MULT, &($1), &($3), &($$));
-                                  llvm_createExpr(LLVM_PLUS, $1.place.entry, $3.place.entry, $$.place.entry); }
+                                  llvm_createExpr(LLVM_MULT, $1.place.entry, $3.place.entry, $$.place.entry); }
 
         |   expr T_div expr     { binopQuad(DIVI, &($1), &($3), &($$));
-                                  llvm_createExpr(LLVM_PLUS, $1.place.entry, $3.place.entry, $$.place.entry); }
+                                  llvm_createExpr(LLVM_DIV, $1.place.entry, $3.place.entry, $$.place.entry); }
 
         |   expr T_mod expr     { binopQuad(MOD, &($1), &($3), &($$));
-                                  llvm_createExpr(LLVM_PLUS, $1.place.entry, $3.place.entry, $$.place.entry); }
+                                  llvm_createExpr(LLVM_MOD, $1.place.entry, $3.place.entry, $$.place.entry); }
 
         ;
 

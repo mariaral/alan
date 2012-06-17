@@ -554,7 +554,12 @@ void llvm_stmtReturn(SymbolEntry *retEntry)
         LLVMBuildRetVoid(builder);
     }
     funcValue = currentScope->parent->entries->u.eFunction.value;
-    block = LLVMAppendBasicBlock(funcValue, "Unreachable");
+    block = LLVMGetInsertBlock(builder);
+    block = LLVMGetNextBasicBlock(block);
+    if(block == NULL)
+        block = LLVMAppendBasicBlock(funcValue, "Unreachable");
+    else
+        block = LLVMInsertBasicBlock(block, "Unreachable");
     LLVMPositionBuilderAtEnd(builder, block);
 }
 
@@ -627,6 +632,7 @@ void llvm_createBlock(llvm_cond lcond)
     funValue = currentScope->parent->entries->u.eFunction.value;
 
     if(lcond == LLVM_COND) {
+        cond_block->loop_block  = NULL;
         cond_block->true_block  = LLVMAppendBasicBlock(funValue, "True");
         cond_block->false_block = LLVMAppendBasicBlock(funValue, "False");
         cond_block->exit_block  = LLVMAppendBasicBlock(funValue, "Exit");
@@ -634,6 +640,7 @@ void llvm_createBlock(llvm_cond lcond)
         cond_block->loop_block  = LLVMAppendBasicBlock(funValue, "Loop");
         cond_block->true_block  = LLVMAppendBasicBlock(funValue, "True");
         cond_block->false_block = LLVMAppendBasicBlock(funValue, "False");
+        cond_block->exit_block  = NULL;
     }
 }
 
@@ -652,6 +659,7 @@ void llvm_exitBlock(llvm_cond lcond)
 void llvm_newBlock(llvm_block lblock)
 {
     LLVMValueRef funValue;
+    LLVMBasicBlockRef nextBlock;
 
     if(global_typeError)
         return;
@@ -660,17 +668,18 @@ void llvm_newBlock(llvm_block lblock)
 
     switch(lblock) {
     case LLVM_TRUEB:
-        cond_block->true_block = LLVMAppendBasicBlock(funValue, "True");
+        nextBlock = cond_block->false_block;
+        cond_block->true_block = LLVMInsertBasicBlock(nextBlock, "True");
         break;
     case LLVM_FALSEB:
-        cond_block->false_block = LLVMAppendBasicBlock(funValue, "False");
+        nextBlock = cond_block->exit_block;
+        if(nextBlock == NULL)
+            cond_block->false_block = LLVMAppendBasicBlock(funValue, "False");
+        else
+            cond_block->false_block = LLVMInsertBasicBlock(nextBlock, "False");
         break;
-    case LLVM_EXITB:
-        cond_block->exit_block = LLVMAppendBasicBlock(funValue, "Exit");
-        break;
-    case LLVM_LOOPB:
-        cond_block->loop_block = LLVMAppendBasicBlock(funValue, "Loop");
-        break;
+    default:
+        internal("in llvm_newBlock: invalid input\n");
     }
 }
 
