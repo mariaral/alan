@@ -195,21 +195,31 @@ stmt        :   T_semic { ret_at_end = false; $$ = emptyList(); }
                                           $$ = emptyList();
                                           ret_at_end = false; }
 
-            |   T_if T_oppar cond T_clpar { backpatch($3.True,nextQuad());
-                                            $<l>$.L1 = $3.False;
-                                            $<l>$.L2 = emptyList(); }
+            |   T_if    { llvm_createBlock(LLVM_COND); }
+                T_oppar cond T_clpar { backpatch($4.True,nextQuad());
+                                       $<l>$.L1 = $4.False;
+                                       $<l>$.L2 = emptyList();
+                                       llvm_startBlock(LLVM_TRUEB); }
+                stmt        { llvm_jumpBlock(LLVM_EXITB); llvm_startBlock(LLVM_FALSEB); }
+                else_stmt   { $$ = merge(merge($7,$<l>9.L1),$<l>9.L2);
+                              ret_at_end = false;
+                              llvm_jumpBlock(LLVM_EXITB);
+                              llvm_exitBlock(LLVM_COND); }
 
-                stmt else_stmt { $$ = merge(merge($6,$<l>7.L1),$<l>7.L2);
-                                 ret_at_end = false; }
+            |   T_while { $<i>$ = nextQuad();
+                          llvm_createBlock(LLVM_LOOP);
+                          llvm_jumpBlock(LLVM_LOOPB);
+                          llvm_startBlock(LLVM_LOOPB); }
 
-            |   T_while { $<i>$ = nextQuad(); }
-
-                T_oppar cond T_clpar { backpatch($4.True,nextQuad()); }
+                T_oppar cond T_clpar { backpatch($4.True,nextQuad());
+                                       llvm_startBlock(LLVM_TRUEB); }
 
                 stmt    { backpatch($7,$<i>2);
                           genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_LABEL,$<i>2));
                           $$ = $4.False;
-                          ret_at_end = false; }
+                          ret_at_end = false;
+                          llvm_jumpBlock(LLVM_LOOPB);
+                          llvm_exitBlock(LLVM_LOOP); }
 
             |   T_return T_semic    { currentFunction = currentScope->parent->entries;
                                       if(currentFunction->u.eFunction.resultType!=typeVoid)
@@ -231,10 +241,10 @@ stmt        :   T_semic { ret_at_end = false; $$ = emptyList(); }
                                           llvm_stmtReturn($2.place.entry); }
             ;
 
-else_stmt   :       /*EMPTY*/ { $<l>$ = $<l>-1; }
+else_stmt   :       /*EMPTY*/ { $<l>$ = $<l>-2; }
             |       T_else    { genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
                                 $<Next>$ = makeList(currentQuad());
-                                backpatch($<b>-3.False,nextQuad()); }
+                                backpatch($<b>-4.False,nextQuad()); }
                     stmt      { $<l>$.L2 = $3;
                                 $<l>$.L1 = $<Next>2; }
             ;
@@ -449,33 +459,46 @@ lval_id : T_id  { if((lval = lookupEntry($1,LOOKUP_ALL_SCOPES,true))==NULL) {
 cond    :   T_true  { genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
                       $$.True = makeList(currentQuad());
                       genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
-                      $$.False = makeList(currentQuad()); }
+                      $$.False = makeList(currentQuad());
+                      llvm_jumpBlock(LLVM_TRUEB); }
 
         |   T_false { genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
                       $$.False = makeList(currentQuad());
                       genQuad(JUMP,op(OP_NOTHING),op(OP_NOTHING),op(OP_UNKNOWN));
-                      $$.True = makeList(currentQuad()); }
+                      $$.True = makeList(currentQuad());
+                      llvm_jumpBlock(LLVM_FALSEB); }
 
         |   T_oppar cond T_clpar { $$=$2; }
 
-        |   T_excl cond     { $$.True = $2.False; $$.False = $2.True; }
+        |   T_excl cond     { $$.True = $2.False; $$.False = $2.True;
+                              llvm_createLogic(LLVM_EXCL, NULL, NULL); }
 
-        |   expr T_eq expr  { relopQuad(EQ, &($1), &($3),&($$)); }
+        |   expr T_eq expr  { relopQuad(EQ, &($1), &($3),&($$));
+                              llvm_createLogic(LLVM_EQ, $1.place.entry, $3.place.entry); }
 
-        |   expr T_ne expr  { relopQuad(NEQ, &($1), &($3),&($$)); }
+        |   expr T_ne expr  { relopQuad(NEQ, &($1), &($3),&($$));
+                              llvm_createLogic(LLVM_NE, $1.place.entry, $3.place.entry); }
 
-        |   expr T_gt expr  { relopQuad(GT, &($1), &($3),&($$)); }
+        |   expr T_gt expr  { relopQuad(GT, &($1), &($3),&($$));
+                              llvm_createLogic(LLVM_QT, $1.place.entry, $3.place.entry); }
 
-        |   expr T_lt expr  { relopQuad(LT, &($1), &($3),&($$)); }
+        |   expr T_lt expr  { relopQuad(LT, &($1), &($3),&($$));
+                              llvm_createLogic(LLVM_LT, $1.place.entry, $3.place.entry); }
 
-        |   expr T_ge expr  { relopQuad(GE, &($1), &($3),&($$)); }
+        |   expr T_ge expr  { relopQuad(GE, &($1), &($3),&($$));
+                              llvm_createLogic(LLVM_QE, $1.place.entry, $3.place.entry); }
 
-        |   expr T_le expr  { relopQuad(LE, &($1), &($3),&($$)); }
+        |   expr T_le expr  { relopQuad(LE, &($1), &($3),&($$));
+                              llvm_createLogic(LLVM_LE, $1.place.entry, $3.place.entry); }
 
-        |   cond T_and { backpatch($1.True,nextQuad()); }
+        |   cond T_and { backpatch($1.True,nextQuad());
+                         llvm_startBlock(LLVM_TRUEB);
+                         llvm_newBlock(LLVM_TRUEB); }
             cond       { $$.True = $4.True; $$.False = merge($1.False,$4.False); }
 
-        |   cond T_or { backpatch($1.False,nextQuad()); }
+        |   cond T_or { backpatch($1.False,nextQuad());
+                        llvm_startBlock(LLVM_FALSEB);
+                        llvm_newBlock(LLVM_FALSEB); }
             cond      {  $$.True = merge($1.True,$4.True); $$.False = $4.False; }
         ;
 
