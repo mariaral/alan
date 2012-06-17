@@ -24,6 +24,14 @@ static struct func_call_tag {
     struct func_call_tag *prev;
 } *func_call = NULL;
 
+static struct cond_block_tag {
+    LLVMBasicBlockRef true_block;
+    LLVMBasicBlockRef false_block;
+    LLVMBasicBlockRef exit_block;
+    LLVMBasicBlockRef loop_block;
+    struct cond_block_tag *prev;
+} *cond_block = NULL;
+
 int getNumberOfArgs(SymbolEntry *firstArgument);
 LLVMTypeRef convertToLlvmType(Type type, bool byRef);
 LLVMValueRef getLlvmLValue(SymbolEntry *rvalEntry);
@@ -599,6 +607,155 @@ void llvm_createExpr(llvm_oper loper, SymbolEntry *leftEntry,
             LLVMBuildSRem(builder, leftValue, rightValue, "");
         break;
     }
+}
+
+
+/* ---------------------------------------
+ * Operate on conditional blocks
+ */
+void llvm_createBlock(llvm_cond lcond)
+{
+    struct cond_block_tag *temp;
+    LLVMValueRef funValue;
+
+    if(global_typeError)
+        return;
+
+    temp = (struct cond_block_tag*) new(sizeof(struct cond_block_tag));
+    temp->prev = cond_block;
+    cond_block = temp;
+    funValue = currentScope->parent->entries->u.eFunction.value;
+
+    if(lcond == LLVM_COND) {
+        cond_block->true_block  = LLVMAppendBasicBlock(funValue, "True");
+        cond_block->false_block = LLVMAppendBasicBlock(funValue, "False");
+        cond_block->exit_block  = LLVMAppendBasicBlock(funValue, "Exit");
+    } else {
+        cond_block->loop_block  = LLVMAppendBasicBlock(funValue, "Loop");
+        cond_block->true_block  = LLVMAppendBasicBlock(funValue, "True");
+        cond_block->false_block = LLVMAppendBasicBlock(funValue, "False");
+    }
+}
+
+void llvm_exitBlock(llvm_cond lcond)
+{
+    if(global_typeError)
+        return;
+
+    if(lcond == LLVM_COND)
+        llvm_startBlock(LLVM_EXITB);
+    else
+        llvm_startBlock(LLVM_LOOPB);
+    cond_block = cond_block->prev;
+}
+
+void llvm_newBlock(llvm_block lblock)
+{
+    LLVMValueRef funValue;
+
+    if(global_typeError)
+        return;
+
+    funValue = currentScope->parent->entries->u.eFunction.value;
+
+    switch(lblock) {
+    case LLVM_TRUEB:
+        cond_block->true_block = LLVMAppendBasicBlock(funValue, "True");
+        break;
+    case LLVM_FALSEB:
+        cond_block->false_block = LLVMAppendBasicBlock(funValue, "False");
+        break;
+    case LLVM_EXITB:
+        cond_block->exit_block = LLVMAppendBasicBlock(funValue, "Exit");
+        break;
+    case LLVM_LOOPB:
+        cond_block->loop_block = LLVMAppendBasicBlock(funValue, "Loop");
+        break;
+    }
+}
+
+void llvm_startBlock(llvm_block lblock)
+{
+    if(global_typeError)
+        return;
+
+    switch(lblock) {
+    case LLVM_TRUEB:
+        LLVMPositionBuilderAtEnd(builder, cond_block->true_block);
+        break;
+    case LLVM_FALSEB:
+        LLVMPositionBuilderAtEnd(builder, cond_block->false_block);
+        break;
+    case LLVM_EXITB:
+        LLVMPositionBuilderAtEnd(builder, cond_block->exit_block);
+        break;
+    case LLVM_LOOPB:
+        LLVMPositionBuilderAtEnd(builder, cond_block->loop_block);
+        break;
+    }
+}
+
+void llvm_jumpBlock(llvm_block lblock)
+{
+    if(global_typeError)
+        return;
+
+    switch(lblock) {
+    case LLVM_TRUEB:
+        LLVMBuildBr(builder, cond_block->true_block);
+        break;
+    case LLVM_FALSEB:
+        LLVMBuildBr(builder, cond_block->false_block);
+        break;
+    case LLVM_EXITB:
+        LLVMBuildBr(builder, cond_block->exit_block);
+        break;
+    case LLVM_LOOPB:
+        LLVMBuildBr(builder, cond_block->loop_block);
+        break;
+    }
+}
+
+void llvm_createLogic(llvm_logic llogic, SymbolEntry *leftEntry, SymbolEntry *rightEntry)
+{
+    LLVMValueRef leftValue, rightValue, resultValue;
+    LLVMBasicBlockRef temp;
+
+    if(global_typeError)
+        return;
+
+    if(leftEntry != NULL)
+        leftValue = getLlvmRValue(leftEntry, false);
+    if(rightEntry != NULL)
+        rightValue = getLlvmRValue(rightEntry, false);
+
+    switch(llogic) {
+    case LLVM_EXCL:
+        temp = cond_block->true_block;
+        cond_block->true_block = cond_block->false_block;
+        cond_block->false_block = temp;
+        return;
+    case LLVM_EQ:
+        resultValue = LLVMBuildICmp(builder, LLVMIntEQ, leftValue, rightValue, "");
+        break;
+    case LLVM_NE:
+        resultValue = LLVMBuildICmp(builder, LLVMIntNE, leftValue, rightValue, "");
+        break;
+    case LLVM_QT:
+        resultValue = LLVMBuildICmp(builder, LLVMIntSGT, leftValue, rightValue, "");
+        break;
+    case LLVM_LT:
+        resultValue = LLVMBuildICmp(builder, LLVMIntSLT, leftValue, rightValue, "");
+        break;
+    case LLVM_QE:
+        resultValue = LLVMBuildICmp(builder, LLVMIntSGE, leftValue, rightValue, "");
+        break;
+    case LLVM_LE:
+        resultValue = LLVMBuildICmp(builder, LLVMIntSLE, leftValue, rightValue, "");
+        break;
+    }
+
+    LLVMBuildCondBr(builder, resultValue, cond_block->true_block, cond_block->false_block);
 }
 
 
