@@ -312,9 +312,12 @@ SymbolEntry * newConstant (const char * name, Type type, ...)
                 sprintf(buffer, "%Lg", value.vReal);
                 break;
             case TYPE_ARRAY:
+                /*
                 strcpy(buffer, "\"");
                 strAppendString(buffer, value.vString);
                 strcat(buffer, "\"");
+                */
+                sprintf(buffer, "string.%d", unique++);
                 break;
             default:
                 break;           
