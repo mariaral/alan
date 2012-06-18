@@ -475,12 +475,12 @@ void llvm_addCallParam(SymbolEntry *parEntry)
 
 void llvm_doCall(SymbolEntry *result)
 {
-    SymbolEntry *func = func_call->fun_entry;
-    EntriesArray *lifted = func->u.eFunction.liftedArguments;
-    LLVMValueRef *call_fac_args = func_call->call_fac_args;
-    int counter = func_call->counter;
+    SymbolEntry *func;
+    EntriesArray *lifted;
+    LLVMValueRef *call_fac_args;
+    int counter;
     SymbolEntry *temp;
-    LLVMValueRef fun_value = func->u.eFunction.value;
+    LLVMValueRef fun_value;
 
     if(global_typeError)
         return;
@@ -622,6 +622,7 @@ void llvm_createBlock(llvm_cond lcond)
 {
     struct cond_block_tag *temp;
     LLVMValueRef funValue;
+    LLVMBasicBlockRef nextBlock;
 
     if(global_typeError)
         return;
@@ -631,16 +632,33 @@ void llvm_createBlock(llvm_cond lcond)
     cond_block = temp;
     funValue = currentScope->parent->entries->u.eFunction.value;
 
-    if(lcond == LLVM_COND) {
-        cond_block->loop_block  = NULL;
-        cond_block->true_block  = LLVMAppendBasicBlock(funValue, "True");
-        cond_block->false_block = LLVMAppendBasicBlock(funValue, "False");
-        cond_block->exit_block  = LLVMAppendBasicBlock(funValue, "Exit");
+    nextBlock = LLVMGetInsertBlock(builder);
+    nextBlock = LLVMGetNextBasicBlock(nextBlock);
+
+    if(nextBlock != NULL) {
+        if(lcond == LLVM_COND) {
+            cond_block->exit_block  = LLVMInsertBasicBlock(nextBlock, "Exit");
+            cond_block->false_block = LLVMInsertBasicBlock(cond_block->exit_block, "False");
+            cond_block->true_block  = LLVMInsertBasicBlock(cond_block->false_block, "True");
+            cond_block->loop_block  = NULL;
+        } else {
+            cond_block->exit_block  = NULL;
+            cond_block->false_block = LLVMInsertBasicBlock(nextBlock, "False");
+            cond_block->true_block  = LLVMInsertBasicBlock(cond_block->false_block, "True");
+            cond_block->loop_block  = LLVMInsertBasicBlock(cond_block->true_block, "Loop");
+        }
     } else {
-        cond_block->loop_block  = LLVMAppendBasicBlock(funValue, "Loop");
-        cond_block->true_block  = LLVMAppendBasicBlock(funValue, "True");
-        cond_block->false_block = LLVMAppendBasicBlock(funValue, "False");
-        cond_block->exit_block  = NULL;
+        if(lcond == LLVM_COND) {
+            cond_block->loop_block  = NULL;
+            cond_block->true_block  = LLVMAppendBasicBlock(funValue, "True");
+            cond_block->false_block = LLVMAppendBasicBlock(funValue, "False");
+            cond_block->exit_block  = LLVMAppendBasicBlock(funValue, "Exit");
+        } else {
+            cond_block->loop_block  = LLVMAppendBasicBlock(funValue, "Loop");
+            cond_block->true_block  = LLVMAppendBasicBlock(funValue, "True");
+            cond_block->false_block = LLVMAppendBasicBlock(funValue, "False");
+            cond_block->exit_block  = NULL;
+        }
     }
 }
 
@@ -652,7 +670,7 @@ void llvm_exitBlock(llvm_cond lcond)
     if(lcond == LLVM_COND)
         llvm_startBlock(LLVM_EXITB);
     else
-        llvm_startBlock(LLVM_LOOPB);
+        llvm_startBlock(LLVM_FALSEB);
     cond_block = cond_block->prev;
 }
 
