@@ -274,7 +274,6 @@ SymbolEntry * newConstant (const char * name, Type type, ...)
             break;
         case TYPE_CHAR:
             str = va_arg(ap, RepString);
-
             value.vChar = (const char *) new(strlen(str) + 1);
             strcpy((char *) (value.vChar), str);
             break;

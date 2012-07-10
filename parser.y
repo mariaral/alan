@@ -57,7 +57,7 @@ char buff[10];
 %token T_true T_false
 %token<Name> T_id T_string
 %token<i> T_constnum
-%token<c> T_constchar
+%token<Name> T_constchar
 %token T_assign T_mod T_excl T_and T_or T_eq T_ne T_lt T_le T_gt T_ge
 %token T_oppar T_clpar T_opj T_clj T_begin T_end
 %token T_dd T_comma T_semic
