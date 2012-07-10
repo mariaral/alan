@@ -287,7 +287,7 @@ void printOp(operand op)
         case ENTRY_CONSTANT:
             if(p.entry->u.eConstant.type == typeInteger)
                 printf("%d",p.entry->u.eConstant.value.vInteger);
-            else printf("'%c'",p.entry->u.eConstant.value.vChar);
+            else printf("%s",p.entry->u.eConstant.value.vChar);
             break;
         case ENTRY_TEMPORARY:
             if(p.placeType == REFERENCE)
