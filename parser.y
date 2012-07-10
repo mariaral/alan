@@ -23,6 +23,7 @@ Type retType;
 bool many_arg, typeError;
 bool global_typeError;
 bool ret_exists, ret_at_end;
+bool main_fun;
 void yyerror (const char msg[]);
 int yylex(void);
 int linecount=1;
@@ -34,6 +35,7 @@ char buff[10];
         int     i;
         char    c;
         oper op;
+        SymbolEntry *e;
         Type type;
         varstr var;
         labelList *Next;
@@ -81,7 +83,8 @@ char buff[10];
 
 program     :   { global_typeError = false;
                   openScope();
-                  init_ready_functions(); }
+                  init_ready_functions();
+                  main_fun = true;}
                 func_def
                 { llvm_createMain(currentScope->entries);
                   closeScope(); }
@@ -97,6 +100,7 @@ func_def    :   T_id    { fun_decl = lookupEntry($1,LOOKUP_CURRENT_SCOPE,false);
 
                 T_oppar fpar_list T_clpar T_dd r_type
                 { endFunctionHeader(fun_decl,$7);
+                if(main_fun) main_fun=false;
                   llvm_createFunction(fun_decl, false); }
 
                 local_def0  { ret_at_end=false;
@@ -126,7 +130,7 @@ local_def0  :   /*EMPTY*/
             ;
 
 fpar_list   :   /*EMPTY*/
-            |   fpar_def fpar_list0
+            |   fpar_def fpar_list0 { if(main_fun) error("main function doesn't take arguments"); }
             ;
 
 fpar_list0  :   /*EMPTY*/
@@ -135,13 +139,15 @@ fpar_list0  :   /*EMPTY*/
                                           global_typeError = true; }
             ;
 
-fpar_def    :   T_id T_dd type  { if($3->kind != TYPE_IARRAY)
+fpar_def    :   T_id T_dd type  { if(main_fun) break;
+                                  if($3->kind != TYPE_IARRAY)
                                     newParameter($1, $3, PASS_BY_VALUE, fun_decl);
                                   else {
                                     error("Arrays must always pass by reference");
                                     newParameter($1, $3, PASS_BY_REFERENCE, fun_decl);
                                   } }
-            |   T_id T_dd T_reference type { newParameter($1, $4, PASS_BY_REFERENCE, fun_decl); }
+            |   T_id T_dd T_reference type { if(main_fun) break;
+                                             newParameter($1, $4, PASS_BY_REFERENCE, fun_decl); }
             ;
 
 data_type   :   T_int   { $$ = typeInteger; }
@@ -191,7 +197,7 @@ stmt        :   T_semic { ret_at_end = false; $$ = emptyList(); }
             |   compound_stmt       { ret_at_end = false; $$ = $1; }
 
             |   func_call T_semic   { if((!equalType($1.type,typeVoid))&&(!equalType($1.type,typeUnknown)))
-                                            warning("Function result is not used");
+                                            warning("Function result is not used....");
                                           $$ = emptyList();
                                           ret_at_end = false; }
 
@@ -277,12 +283,14 @@ func_call     : T_id T_oppar    { typeError = false;
                                     break;
                                   }
                                   currentArg = fun_call->u.eFunction.firstArgument;
+                                  $<e>$ = currentArg;
                                   llvm_createCall(fun_call); }
                  expr_list T_clpar  { if(typeError) {
                                         $$.type = typeUnknown;
                                         typeError = false;
                                         break;
                                       }
+                                      fun_call = lookupEntry($1,LOOKUP_ALL_SCOPES,true);
                                       if((retType=fun_call->u.eFunction.resultType)!=typeVoid) {
                                         temp=newTemp(retType);
                                         genQuad(PAR,op(OP_RESULT),op(OP_PLACE,temp),op(OP_NOTHING));
@@ -295,15 +303,17 @@ func_call     : T_id T_oppar    { typeError = false;
                                        llvm_doCall($$.place.entry); }
         ;
 
-expr_list   :   /*EMPTY*/ { if(currentArg!=NULL) {
+expr_list   :   /*EMPTY*/ { currentArg = $<e>0;
+                                if(currentArg!=NULL) {
                                 error("Too few arguments at call");
                                 break;
                             } }
-            |   { many_arg=false; }
+            |   { many_arg=false; $<e>$ = $<e>0; }
                 expr_list0
             ;
 
 expr_list0  :   expr    { if(typeError) break;
+                          currentArg = $<e>0;
                           arg=currentArg;
                           if(paramChecked(&many_arg,&currentArg,$1)) {
                             if(paramMode(arg)==PASS_BY_VALUE) {
@@ -319,6 +329,7 @@ expr_list0  :   expr    { if(typeError) break;
                           llvm_addCallParam($1.place.entry); }
 
             |   T_string    { if(typeError) break;
+                              currentArg = $<e>0;
                               arg=currentArg;
                               if(paramString(&many_arg,&currentArg))
                                 genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
@@ -327,6 +338,7 @@ expr_list0  :   expr    { if(typeError) break;
                               llvm_addCallParam( newString($1) ); }
 
             |   expr        { if(typeError) break;
+                              currentArg = $<e>0;
                               arg=currentArg;
                               if(!paramChecked(&many_arg,&currentArg,$1)) break;
                               if(paramMode(arg)==PASS_BY_VALUE) {
@@ -338,13 +350,13 @@ expr_list0  :   expr    { if(typeError) break;
                                 genQuad(PAR,op(OP_PLACE,$1.place),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
                               llvm_addCallParam($1.place.entry); }
 
-                T_comma expr_list0
+                T_comma { $<e>$ = currentArg; } expr_list0
            |    T_string        { if(typeError) break;
                                   arg=currentArg;
                                  if(paramString(&many_arg,&currentArg))
                                     genQuad(PAR,op(OP_STRING,$1),op(OP_PASSMODE,paramMode(arg)),op(OP_NOTHING));
                                  llvm_addCallParam( newString($1) ); }
-                T_comma expr_list0
+                T_comma { $<e>$ = currentArg; } expr_list0
            ;
 
 expr    :   T_constnum  { $$.type = typeInteger;
