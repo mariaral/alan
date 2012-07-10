@@ -396,7 +396,8 @@ LLVMValueRef getLlvmRValue(SymbolEntry *rvalEntry, bool byRef)
             rval = LLVMConstInt(LLVMInt32Type(), rvalEntry->u.eConstant.value.vInteger, 0);
             break;
         case TYPE_CHAR:
-            rval = LLVMConstInt(LLVMInt8Type(), rvalEntry->u.eConstant.value.vChar, 0);
+            str = escapeString(rvalEntry->u.eConstant.value.vChar);
+            rval = LLVMConstInt(LLVMInt8Type(), str[0], 0);
             break;
         case TYPE_ARRAY:
             /* only string can be constant of type array */

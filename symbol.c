@@ -254,11 +254,12 @@ SymbolEntry * newConstant (const char * name, Type type, ...)
 {
     SymbolEntry * e;
     va_list ap;
+    RepString str;
 
     union {
         RepInteger vInteger;
         RepBoolean vBoolean;
-        RepChar    vChar;
+        RepString  vChar;
         RepReal    vReal;
         RepString  vString;
     } value;
@@ -272,15 +273,18 @@ SymbolEntry * newConstant (const char * name, Type type, ...)
             value.vBoolean = va_arg(ap, int);     /* RepBool is promoted */
             break;
         case TYPE_CHAR:
-            value.vChar = va_arg(ap, int);        /* RepChar is promoted */
+            str = va_arg(ap, RepString);
+
+            value.vChar = (const char *) new(strlen(str) + 1);
+            strcpy((char *) (value.vChar), str);
             break;
         case TYPE_REAL:
             value.vReal = va_arg(ap, RepReal);
             break;
         case TYPE_ARRAY:
             if (equalType(type->refType, typeChar)) {
-                RepString str = va_arg(ap, RepString);
-                
+                str = va_arg(ap, RepString);
+
                 value.vString = (const char *) new(strlen(str) + 1);
                 strcpy((char *) (value.vString), str);
                 break;
@@ -292,7 +296,7 @@ SymbolEntry * newConstant (const char * name, Type type, ...)
 
     if (name == NULL) {
         char buffer[256];
-        
+
         switch (type->kind) {
             case TYPE_INTEGER:
                 sprintf(buffer, "%d", value.vInteger);
@@ -304,9 +308,12 @@ SymbolEntry * newConstant (const char * name, Type type, ...)
                     sprintf(buffer, "false");
                 break;
             case TYPE_CHAR:
+                /*
                 strcpy(buffer, "'");
                 strAppendChar(buffer, value.vChar);
                 strcat(buffer, "'");
+                */
+                sprintf(buffer, "char.%d", unique++);
                 break;
             case TYPE_REAL:
                 sprintf(buffer, "%Lg", value.vReal);
@@ -326,7 +333,7 @@ SymbolEntry * newConstant (const char * name, Type type, ...)
     }
     else
         e = newEntry(name);
-    
+
     if (e != NULL) {
         e->entryType = ENTRY_CONSTANT;
         e->u.eConstant.type = type;

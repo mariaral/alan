@@ -134,7 +134,7 @@ struct SymbolEntry_tag {
          union {                              /* Τιμή                  */
             RepInteger vInteger;              /*    ακέραια            */
             RepBoolean vBoolean;              /*    λογική             */
-            RepChar    vChar;                 /*    χαρακτήρας         */
+            RepString  vChar;                 /*    χαρακτήρας         */
             RepReal    vReal;                 /*    πραγματική         */
             RepString  vString;               /*    συμβολοσειρά       */
          } value;

@@ -432,7 +432,7 @@ l_value :   lval_id                     { $$ = $1; }
                                             $$.type = typeUnknown;
                                             break;
                                           }
-                                          if($1.type->kind != TYPE_ARRAY) {
+                                          if(($1.type->kind != TYPE_ARRAY)&&($1.type->kind != TYPE_IARRAY)) {
                                              error("Identifier is not array");
                                              $$.type = typeUnknown;
                                              break;
