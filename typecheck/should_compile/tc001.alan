@@ -1,7 +1,13 @@
-hello () : proc
-	foo : int;
+hello() : proc
+  foo1(x : int) : int
+  { return x; }
+  foo2() : int
+  { return 42; }
+  foo3(x : int, y : int) : proc
+  { writeInteger(x); writeString("\n");
+    writeInteger(y); writeString("\n"); }
+
 {
-	foo = 2147483648;  -- overflow
-	foo = -2147483648; -- no overflow
-	foo = -2147483649; -- overflow
+  foo3(foo1(42), foo2());
+  foo3(foo2(),   foo1(8));
 }
