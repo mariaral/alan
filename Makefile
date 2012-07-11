@@ -1,4 +1,4 @@
-CFILES   = symbol.c error.c general.c quad.c libalan.c typecheck.c llvm.c
+CFILES   = symbol.c error.c general.c quad.c libalan.c typecheck.c llvm.c alan.c
 GENFILES = lexer.c parser.h parser.c parser.output
 OBJFILES = $(patsubst %.c,%.o,$(CFILES)) lexer.o parser.o
 EXEFILES = alan
@@ -73,7 +73,8 @@ general.o:   general.h error.h symbol.h gc.h
 quad.o:      general.h error.h quad.h typecheck.h
 libalan.o:   symbol.h llvm.h
 typecheck.o: quad.h error.h
-llvm.o:		 llvm.h symbol.h error.h general.h
+llvm.o:      llvm.h symbol.h error.h general.h
+alan.o:	     llvm.h symbol.h parser.h gc.h quad.h
 
 lexer.o:  symbol.h quad.h parser.h
 parser.o: general.h error.h symbol.h quad.h libalan.h typecheck.h llvm.h gc.h

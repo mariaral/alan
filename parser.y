@@ -197,7 +197,7 @@ stmt        :   T_semic { ret_at_end = false; $$ = emptyList(); }
             |   compound_stmt       { ret_at_end = false; $$ = $1; }
 
             |   func_call T_semic   { if((!equalType($1.type,typeVoid))&&(!equalType($1.type,typeUnknown)))
-                                            warning("Function result is not used....");
+                                            warning("Function result is not used");
                                           $$ = emptyList();
                                           ret_at_end = false; }
 
@@ -520,21 +520,4 @@ void yyerror (const char * msg)
 {
   fprintf(stderr, "Syntax error in line %d: %s\n", linecount, msg);
   exit(1);
-}
-
-int main ()
-{
-    int ret;
-
-    GC_INIT();      /* Optional on Linux/X86 */
-
-    initSymbolTable(512);
-    llvm_createModule();
-    ret = yyparse();
-    if(ret==0)
-        llvm_printModule("foo.bc");
-    llvm_destroyModule();
-    destroySymbolTable();
-
-    return ret;
 }
