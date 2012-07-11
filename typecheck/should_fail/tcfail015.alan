@@ -1,6 +1,0 @@
-scopError() : proc
-  fun() : proc
-  { foo = 5; }
-
-  foo : int;
-{}

@@ -15,7 +15,7 @@ LDFLAGS = -lfl $(GC_INSTPATH)/lib/libgc.a \
 
 
 .PHONY: all
-all: $(EXEFILES)
+all: $(EXEFILES) lib.s
 
 $(EXEFILES): $(OBJFILES)
 	$(CXX) $(CFLAGS) -o $(EXEFILES) $(OBJFILES) $(LDFLAGS)
@@ -32,9 +32,12 @@ lexer.c: lexer.l
 parser.c: parser.y
 	bison -v -d -o $@ $<
 
+lib.s: lib.bc
+	llc -O3 $< -o $@
+
 .PHONY: clean
 clean:
-	$(RM) $(EXEFILES) $(OBJFILES) $(GENFILES) *~
+	$(RM) $(EXEFILES) $(OBJFILES) $(GENFILES) lib.s *~
 
 .PHONY: distclean
 distclean: gc_clean clean

@@ -11,6 +11,8 @@
 
 extern int  yyparse();
 extern FILE *yyin;
+extern bool global_typeError;
+
 char filename[256];
 FILE *outfile;
 char inpfile[256];
@@ -45,7 +47,7 @@ void help_exit()
             "./alan -i <file.alan    prints to standard output the quads of file.alan\n"
             "./alan -f -O2 <file     prints assembly code at O2 optimization level\n"
             "./alan -O test.alan     prints quads to test.ism, fully optimized llvm code\n"
-            "                        to test.ll and fully optimized assembly code to test.asm\n"
+            "                        to test.ll and fully optimized assembly code to test.s\n"
             "\n");
     exit(1);
 }
@@ -109,11 +111,11 @@ int main (int argc, char *argv[])
         pquads=true;
         outfile = fopen(buff,"w");
         ret = yyparse();
-        if(ret!=0) return ret;
+        if((ret!=0)||global_typeError) return ret;
         sprintf(buff,"%s.bc",inpfile);
         llvm_printModule(buff);
         if(opt=='0') {
-            sprintf(buff,"llc -o %s.asm %s.bc",inpfile,inpfile);
+            sprintf(buff,"llc -o %s.s %s.bc",inpfile,inpfile);
             system(buff);
             sprintf(buff,"llvm-dis -o %s.ll %s.bc",inpfile,inpfile);
             system(buff);
@@ -121,13 +123,13 @@ int main (int argc, char *argv[])
         else {
             sprintf(buff,"opt -O%c -o %s.bc %s.bc",opt,inpfile,inpfile);
             system(buff);
-            sprintf(buff,"llc -O%c -o %s.asm %s.bc",opt,inpfile,inpfile);
+            sprintf(buff,"llc -O%c -o %s.s %s.bc",opt,inpfile,inpfile);
             system(buff);
             sprintf(buff,"llvm-dis -o %s.ll %s.bc",inpfile,inpfile);
             system(buff);
         }
-
-
+        sprintf(buff,"gcc %s.s lib.s -o %s.out",inpfile,inpfile);
+        system(buff); 
     }
     else if(i && !f && !l) {
         if((argc-optind)>0)
@@ -135,28 +137,34 @@ int main (int argc, char *argv[])
         outfile = stdout;
         pquads = true;
         ret = yyparse();
+        if((ret!=0)||global_typeError) return ret;
     } else if(f && !i && !l) {
         if((argc-optind)>0)
            help_exit(); 
         pquads = false;
         ret = yyparse();
-        if(ret!=0) return ret;
+        if((ret!=0)||global_typeError) return ret;
         llvm_printModule("foo.bc");
-        if(opt=='0') 
+        if(opt=='0') {
             system("llc -o - foo.bc");
+            system("llc -o foo.s foo.bc");
+        }
         else {
             sprintf(buff,"opt -O%c -o foo.bc foo.bc",opt);
             system(buff);
             sprintf(buff,"llc -O%c -o - foo.bc",opt);
             system(buff);
+            sprintf(buff,"llc -O%c -o foo.s foo.bc",opt);
+            system(buff);
         }
+        system("gcc foo.s lib.s -o stdin.out");
 
     } else if(l && !i && !f) {
         if((argc-optind)>0)
            help_exit(); 
         pquads = false;
         ret = yyparse();
-        if(ret!=0) return ret;
+        if((ret!=0)||global_typeError) return ret;
         llvm_printModule("foo.bc");
         if(opt!='0') {
             sprintf(buff,"opt -O%c -o foo.bc foo.bc",opt);

@@ -51,7 +51,7 @@ specialchar \\([ntr0\\\"\']|x{hex}{2})
 {digit}+	{yylval.i = (int)installNum(); return(T_constnum);}
 {letter}({letter}|_|{digit})*		{ strncpy(yylval.Name,yytext,256); return T_id; }
 \'({simplechar}|{specialchar})\'	{ strncpy(yylval.Name,yytext,256); return T_constchar; }
-\"({simplechar}|{white}|\\)*\"		{ strncpy(yylval.Name,yytext,256); return T_string; }
+\"({simplechar}|{white}|{specialchar})*\" { strncpy(yylval.Name,yytext,256); return T_string; }
 
 "--"([^\n])*\n			{ linecount++; }
 
@@ -99,16 +99,6 @@ specialchar \\([ntr0\\\"\']|x{hex}{2})
 
 <INITIAL>"*)"	{ fprintf(stderr, "Lexical error at line %d: "
 		"Comments close without opening\n",linecount); }
-
-%{
-/*
-{digit}+	{ if(atoi(yytext) <= 32768) return T_constnum;
-//		else if(atoi(yytext) == 32768) fprintf(stderr, "Warning at line %d: "
-//		"Number is at the limit\n",linecount);
-//		else fprintf(stderr, "Error at line %d: "
-//		"Number is out of limit\n",linecount); }
-*/
-%}
 
 \"({simplechar}|{white}|\\)*\n	{ fprintf(stderr, "Lexical error at line %d: "
 				"String starts without ending at the same line\n",linecount); }
