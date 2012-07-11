@@ -8,6 +8,9 @@
 #include "error.h"
 #include "typecheck.h"
 
+extern FILE *outfile;
+extern bool pquads;
+
 unsigned int quadNext= 0;
 quadListNode * quadFirst = NULL;
 quadListNode * quadLast = NULL;
@@ -176,73 +179,74 @@ void printQuads()
     quadListNode * temp;
 
     temp = quadFirst;
+    if(!pquads) return;
     while (temp != NULL) {
-        printf("%d: ",temp->quadLabel);
+        fprintf(outfile,"%d: ",temp->quadLabel);
         switch (temp->op) {
         case UNIT:
-            printf("unit, ");
+            fprintf(outfile,"unit, ");
             break;
         case ENDU:
-            printf("endu, ");
+            fprintf(outfile,"endu, ");
             break;
         case PLUS:
-            printf("+, ");
+            fprintf(outfile,"+, ");
             break;
         case MINUS:
-            printf("-, ");
+            fprintf(outfile,"-, ");
             break;
         case MULT:
-            printf("*, ");
+            fprintf(outfile,"*, ");
             break;
         case DIVI:
-            printf("/, ");
+            fprintf(outfile,"/, ");
             break;
         case MOD:
-            printf("%%, ");
+            fprintf(outfile,"%%, ");
             break;
         case ASSIGN:
-            printf(":=, ");
+            fprintf(outfile,":=, ");
             break;
         case ARRAY:
-            printf("array, ");
+            fprintf(outfile,"array, ");
             break;
         case EQ:
-            printf("=, ");
+            fprintf(outfile,"=, ");
             break;
         case NEQ:
-            printf("<>, ");
+            fprintf(outfile,"<>, ");
             break;
         case LT:
-            printf("<, ");
+            fprintf(outfile,"<, ");
             break;
         case GT:
-            printf(">, ");
+            fprintf(outfile,">, ");
             break;
         case LE:
-            printf("<=, ");
+            fprintf(outfile,"<=, ");
             break;
         case GE:
-            printf(">=, ");
+            fprintf(outfile,">=, ");
             break;
         case JUMP:
-            printf("jump, ");
+            fprintf(outfile,"jump, ");
             break;
        case RET:
-            printf("ret, ");
+            fprintf(outfile,"ret, ");
             break;
        case PAR:
-            printf("par, ");
+            fprintf(outfile,"par, ");
             break;
        case CALL:
-            printf("call, ");
+            fprintf(outfile,"call, ");
             break;
         }
         printOp(temp->operand0);
-        printf(", ");
+        fprintf(outfile,", ");
         printOp(temp->operand1);
-        printf(", ");
+        fprintf(outfile,", ");
         printOp(temp->operand2);
-        printf("\n");
+        fprintf(outfile,"\n");
         temp = temp->next;
     }
 }
@@ -253,50 +257,50 @@ void printOp(operand op)
     
     switch (op.opType) {
     case OP_LABEL:
-        printf("%d",op.u.label);
+        fprintf(outfile,"%d",op.u.label);
         break;
     case OP_NAME:
-        printf("%s",op.u.name);
+        fprintf(outfile,"%s",op.u.name);
         break;
     case OP_UNKNOWN:
-        printf("*");
+        fprintf(outfile,"*");
         break;
     case OP_NOTHING:
-        printf("-");
+        fprintf(outfile,"-");
         break;
     case OP_RESULT:
-        printf("RET");
+        fprintf(outfile,"RET");
         break;
     case OP_STRING:
-        printf("%s",op.u.name);
+        fprintf(outfile,"%s",op.u.name);
         break;
     case OP_PASSMODE:
         if(op.u.passmode==PASS_BY_VALUE)
-            printf("V");
-        else printf("R");
+            fprintf(outfile,"V");
+        else fprintf(outfile,"R");
         break;
     case OP_PLACE:
         p = op.u.place;
         switch (p.entry->entryType) {
         case ENTRY_VARIABLE:
-            printf("%s",p.entry->id);
+            fprintf(outfile,"%s",p.entry->id);
             break;
         case ENTRY_PARAMETER:
-            printf("%s",p.entry->id);
+            fprintf(outfile,"%s",p.entry->id);
             break;
         case ENTRY_CONSTANT:
             if(p.entry->u.eConstant.type == typeInteger)
-                printf("%d",p.entry->u.eConstant.value.vInteger);
-            else printf("%s",p.entry->u.eConstant.value.vChar);
+                fprintf(outfile,"%d",p.entry->u.eConstant.value.vInteger);
+            else fprintf(outfile,"%s",p.entry->u.eConstant.value.vChar);
             break;
         case ENTRY_TEMPORARY:
             if(p.placeType == REFERENCE)
-                printf("[$%d]",p.entry->u.eTemporary.number);
+                fprintf(outfile,"[$%d]",p.entry->u.eTemporary.number);
             else 
-                printf("$%d",p.entry->u.eTemporary.number);
+                fprintf(outfile,"$%d",p.entry->u.eTemporary.number);
             break;
         default:
-            printf("Unknown operand");
+            fprintf(outfile,"Unknown operand");
             break;
         }
     }
