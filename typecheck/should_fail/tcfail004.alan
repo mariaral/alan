@@ -1,8 +1,0 @@
-arrayParamErr() : proc
-  foo2(foo : byte []) : proc
-  {
-    writeString(foo);
-  }
-{
-  foo2("42\n");
-}

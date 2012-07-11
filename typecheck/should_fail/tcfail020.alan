@@ -1,5 +1,0 @@
-MulDimArray() : proc
-  i : int[4];
-{
-  i = i;
-}

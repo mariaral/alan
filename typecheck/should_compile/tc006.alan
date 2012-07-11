@@ -1,6 +1,0 @@
-unusedResult() : proc
-  foo1() : int
-  { return 42; }
-{
-  foo1();
-}

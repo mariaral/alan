@@ -873,6 +873,7 @@ char *escapeString(const char *src)
             case 'x' :
                 hex[2]=*(++src); hex[3]=*(++src);
                 *temp = (char) strtol(hex, (char **)NULL, 16);
+                break;
             default:
                 *temp = *src;
             }

@@ -13,6 +13,7 @@ parser.c
 parser.h
 lexer.c
 parser.output
+lib.s
 
 gc/inplace/*/*
 gc/Makefile
